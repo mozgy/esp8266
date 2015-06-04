@@ -1,0 +1,61 @@
+
+// #include <Wire.h>
+#include <ESP8266WiFi.h>
+#include <stdio.h>
+
+#define OLED_address  0x3c  //OLED I2C bus address
+#define OLED_SDA 0
+#define OLED_SCL 2
+
+#include "font.h"
+#include "mozz.h"
+
+long startMillis;
+
+const char* ssid  = "MozzWiFi";
+const char* pass  = "x";
+const char* host  = "mozgy.t-com.hr";
+
+char buffer[20]; 
+
+extern "C" {
+#include "user_interface.h"
+}
+
+void setup() {
+  Serial.begin(115200);
+  delay(2000); // wait for uart to settle and print Espressif blurb..
+  
+  // print out all system information
+  Serial.print("Heap: "); Serial.println(system_get_free_heap_size());
+  Serial.print("Boot Vers: "); Serial.println(system_get_boot_version());
+  Serial.print("CPU: "); Serial.println(system_get_cpu_freq());
+ 
+  Serial.println();
+
+  // Wire.begin( OLED_SDA, OLED_SCL );
+  pinMode( OLED_SDA, OUTPUT );
+  pinMode( OLED_SCL, OUTPUT );
+
+  Init_OLED();
+  Serial.println("OLED Init...");
+
+  Serial.println("Setup done");
+
+}
+
+void loop() {
+  Serial.println("Drawing waves");
+  Draw_Waves();
+  delay(2000);
+
+  Serial.println("Drawing WiFi");
+  Draw_WiFi();
+  delay(2000);
+
+  Serial.print( "Time elapsed so far: " );   
+  Serial.print( ( millis() - startMillis ) /100 );
+  Serial.println( "sec." );
+  delay(10000);
+}
+
