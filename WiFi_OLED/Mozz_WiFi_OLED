@@ -1,5 +1,5 @@
 
-// #include <Wire.h>
+#include <Wire.h>
 #include <ESP8266WiFi.h>
 #include <stdio.h>
 
@@ -16,28 +16,29 @@ const char* ssid  = "MozzWiFi";
 const char* pass  = "x";
 const char* host  = "mozgy.t-com.hr";
 
-char buffer[20]; 
+char tmpstr[20];
 
 extern "C" {
 #include "user_interface.h"
 }
 
 void setup() {
+
+  startMillis = millis();
+
   Serial.begin(115200);
   delay(2000); // wait for uart to settle and print Espressif blurb..
   
   // print out all system information
+  Serial.println();
   Serial.print("Heap: "); Serial.println(system_get_free_heap_size());
   Serial.print("Boot Vers: "); Serial.println(system_get_boot_version());
   Serial.print("CPU: "); Serial.println(system_get_cpu_freq());
- 
   Serial.println();
 
-  // Wire.begin( OLED_SDA, OLED_SCL );
-  pinMode( OLED_SDA, OUTPUT );
-  pinMode( OLED_SCL, OUTPUT );
+  Wire.begin( OLED_SDA, OLED_SCL );
 
-  Init_OLED();
+  init_OLED();
   Serial.println("OLED Init...");
 
   Serial.println("Setup done");
@@ -45,17 +46,92 @@ void setup() {
 }
 
 void loop() {
+
+  clear_display();
+  sendStrXY( "Start-up ....  ", 1, 1 );
+  sprintf( tmpstr, "ChipID %d\0", ESP.getChipId() );
+  sendStrXY( tmpstr, 3, 0 );
+  sprintf( tmpstr, "Sec %6d\0", ( millis() - startMillis ) / 100 );
+  sendStrXY( tmpstr, 5, 0 );
+  delay(8000);
+
   Serial.println("Drawing waves");
   Draw_Waves();
-  delay(2000);
+  delay(3000);
 
   Serial.println("Drawing WiFi");
   Draw_WiFi();
-  delay(2000);
+  delay(3000);
+
+  Serial.println("Starting Process Scanning...");
+  Scan_Wifi_Networks();
 
   Serial.print( "Time elapsed so far: " );   
   Serial.print( ( millis() - startMillis ) /100 );
   Serial.println( "sec." );
-  delay(10000);
+  delay(30000);
+
 }
 
+void Scan_Wifi_Networks() {
+
+  int c = 0;
+  char myStr[13];
+  char mySSIDstr[20];
+
+  // Set WiFi to station mode and disconnect from an AP if it was previously connected
+  // Need to be in disconnected mode to Run network Scan!
+  WiFi.mode(WIFI_STA);
+  WiFi.disconnect();
+  delay(100);
+
+  // WiFi.scanNetworks will return the number of networks found
+  int n = WiFi.scanNetworks();
+  Serial.println("Scaning Networks Complete..");
+  Serial.print(n); Serial.println(" Networks have been Found");
+  sprintf( myStr, "%d APs found\0", n );
+  clear_display();
+  sendStrXY( myStr, 3, 0 ); // display the number of APs found
+  delay(3000);
+  
+  if (n == 0) {
+
+    clear_display();
+    sendStrXY( "No net found", 3, 0 );
+    Serial.println("No networks found");
+
+  } else {
+
+    clear_display();
+
+    Serial.print(n); Serial.println(" networks found");
+    for( int i=0; i<n; ++i ) {
+      // Print SSID and RSSI for each network found
+/*
+      Serial.print(i + 1);
+      Serial.print(": ");
+      Serial.print(WiFi.SSID(i));
+      Serial.print(" (");
+      Serial.print(WiFi.RSSI(i));
+      Serial.print(")");
+      Serial.println((WiFi.encryptionType(i) == ENC_TYPE_NONE)?" ":"*");
+      delay(10);
+ */
+      sprintf( myStr, "%s", WiFi.SSID(i) ); // copy in the SSID
+      strncpy( mySSIDstr, myStr, 12 );      // then truncate it
+      myStr[12] = 0; 
+      sprintf( myStr, "%s %2d\0", myStr, WiFi.RSSI(i) ); // append the RSSI
+      sendStrXY( myStr, c, 0 );
+      c++;
+      if(c > 7) {
+        delay(10000);
+        clear_display();
+        c = 0 ;
+      }
+      delay(500);
+
+    }
+  }
+
+  Serial.println("");
+}
