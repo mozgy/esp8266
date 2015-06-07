@@ -2,82 +2,31 @@
  * all the other stuff
  */
 
-/*
 static void SendCommand(unsigned char cmd) {
-  Wire.beginTransmission(OLED_address);
-  Wire.write(0x80);
-  Wire.write(cmd);
+  Wire.beginTransmission( OLED_address );
+  Wire.write( 0x80 );
+  Wire.write( cmd );
   Wire.endTransmission();
 }
 
 static void SendChar(unsigned char data) {
-  Wire.beginTransmission(OLED_address);
-  Wire.write(0x40);
-  Wire.write(data);
+  Wire.beginTransmission( OLED_address );
+  Wire.write( 0x40 );
+  Wire.write( data );
   Wire.endTransmission();
-}
- */
-
-void I2CStart(void) {
-  digitalWrite(OLED_SCL, HIGH);
-  digitalWrite(OLED_SDA, HIGH);
-  digitalWrite(OLED_SDA, LOW);
-  digitalWrite(OLED_SCL, LOW);
-}
-
-void I2CStop(void) {
-  digitalWrite(OLED_SCL, LOW);
-  digitalWrite(OLED_SDA, LOW);
-  digitalWrite(OLED_SCL, HIGH);
-  digitalWrite(OLED_SDA, HIGH);
-}
-
-void WriteI2CByte(unsigned char I2CByte) {
-  unsigned char i;
-  for( i=0; i<8; i++ )   {
-    if((I2CByte << i) & 0x80)
-      digitalWrite(OLED_SDA, HIGH);
-    else
-      digitalWrite(OLED_SDA, LOW);
-      digitalWrite(OLED_SCL, HIGH);
-      digitalWrite(OLED_SCL, LOW);
-  }
-  digitalWrite(OLED_SDA, HIGH);
-  digitalWrite(OLED_SCL, HIGH);
-  digitalWrite(OLED_SCL, LOW);
-}
-
-void StartI2CData(void) {
-   I2CStart();
-   WriteI2CByte(0x78);
-   WriteI2CByte(0x40);
-}
-
-void SendCommand(unsigned char Command) {
-  I2CStart();
-  WriteI2CByte(0x78); // OLED_address ??
-  WriteI2CByte(0x00);
-  WriteI2CByte(Command);
-  I2CStop();
-}
-
-void SendChar(unsigned char data) {
-  StartI2CData();
-  WriteI2CByte(data);
-  I2CStop();
 }
 
 void displayON(void) {
-  SendCommand(0xAE);    // Set Display On
+  SendCommand( 0xAF );    // Set Display On
 }
 
 void displayOFF(void) {
-  SendCommand(0xAE);    // Set Display Off
+  SendCommand( 0xAE );    // Set Display Off
 }
 
-static void Init_OLED(void) {
+static void init_OLED(void) {
 
-  SendCommand(0xAE);    // Set Display Off
+  SendCommand( 0xAE );  // Set Display Off
 
   SendCommand(0xD5);    // Set Display Clock Divide Ratio\Oscilator Frequency
   SendCommand(0x80);    // the suggested ratio 0x80
@@ -115,7 +64,12 @@ static void Init_OLED(void) {
 
   // clearscreen();
 
-  SendCommand(0xAE);    // Set Display On
+  SendCommand( 0x2E );  // Deactivate Scroll
+
+  SendCommand( 0x20 );  // Set Memory Addressing Mode
+  SendCommand( 0x00 );  // Horizontal Addressing Mode
+
+  SendCommand( 0xAF );  // Set Display On
 
 }
 
@@ -125,13 +79,42 @@ static void setCursorXY(unsigned char row, unsigned char col) {
   SendCommand( 0x10 + ( ( 8 * col>>4 ) & 0x0F ) );  // set high col address
 }
 
-void Draw_Waves(void) {
+//==========================================================//
+// Prints a string in coordinates X Y, being multiples of 8.
+// This means we have 16 COLS (0-15) and 8 ROWS (0-7).
+static void sendStrXY( const char *string, int X, int Y) {
+  unsigned char i;
+
+  setCursorXY( X, Y );
+  while( *string ) {
+    for( i=0; i<8; i++ ) {
+      SendChar( pgm_read_byte( myFont[*string-0x20] + i ) );
+    }
+    *string++;
+  }
+}
+
+void clear_display(void) {
+  unsigned char i,j;
+
   displayOFF();
-  // clear_display();
+  for( int i=0; i < 8; i++ ) {
+    setCursorXY( i, 0 );
+    for( int j=0; j < 128; j++ ) {
+      SendChar( 0x00 );
+    }
+  }
+  displayON();
+}
+
+void Draw_Waves(void) {
+  unsigned char i,j;
+
+  // displayOFF();
+  clear_display();
   setCursorXY( 0, 0 );
 
-  // Display Logo here :)
-  for( int i=0; i < 128*8; i++ ) {
+ for( int i=0; i < 128*8; i++ ) {
     SendChar( pgm_read_byte( rfwaves + i ) );
   }
 
@@ -139,16 +122,29 @@ void Draw_Waves(void) {
 }
 
 void Draw_WiFi(void) {
+  unsigned char i,j;
+
   displayOFF();
   // clear_display();
-  setCursorXY( 0, 0 );
-
-  // Display Logo here :)
-  for( int i=0; i < 128*8; i++ ) {
-    SendChar( pgm_read_byte( WIFI1 + i ) );
+  for( int i=0; i<8; i++ ) {
+    setCursorXY( i, 0 );
+    for( int j=0; j<16*8; j++ ) {
+        SendChar( pgm_read_byte( WIFI1 + j + i*16*8 ) );
+    }
   }
-
   displayON();
 }
 
-
+/*
+void Draw_WAVES(void) {
+  clear_display();
+  // Display Logo here :)
+  for( int i=0; i<8; i++ ) {
+    setXY( i, 0 );
+    for( int j=0; j<16*8; j++ ) {
+      SendChar( pgm_read_byte( rfwaves + j + i*16*8 ) );
+    }
+  }
+  displayOn();
+}
+ */
