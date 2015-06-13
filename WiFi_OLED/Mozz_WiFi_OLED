@@ -2,19 +2,20 @@
 #include <Wire.h>
 #include <ESP8266WiFi.h>
 #include <stdio.h>
+#include <OLED_SSD1306.h>
 
-#define OLED_address  0x3c  //OLED I2C bus address
+#define OLED_ADDRESS  0x3c  //OLED I2C bus address
 #define OLED_SDA 0
 #define OLED_SCL 2
 
 #include "font.h"
-#include "mozz.h"
-
-long startMillis;
+// #include "mozz.h"
 
 const char* ssid  = "MozzWiFi";
 const char* pass  = "x";
 const char* host  = "mozgy.t-com.hr";
+
+OLED_SSD1306 oled;
 
 char tmpstr[20];
 
@@ -23,8 +24,6 @@ extern "C" {
 }
 
 void setup() {
-
-  startMillis = millis();
 
   Serial.begin(115200);
   delay(2000); // wait for uart to settle and print Espressif blurb..
@@ -38,7 +37,7 @@ void setup() {
 
   Wire.begin( OLED_SDA, OLED_SCL );
 
-  init_OLED();
+  oled.Init();
   Serial.println("OLED Init...");
 
   Serial.println("Setup done");
@@ -47,12 +46,15 @@ void setup() {
 
 void loop() {
 
-  clear_display();
-  sendStrXY( "Start-up ....  ", 1, 1 );
+  unsigned long sec;
+
+  oled.ClearDisplay();
+  oled.SendStrXY( "Start-up ....  ", 1, 1 );
   sprintf( tmpstr, "ChipID %d\0", ESP.getChipId() );
-  sendStrXY( tmpstr, 3, 0 );
-  sprintf( tmpstr, "Sec %6d\0", ( millis() - startMillis ) / 100 );
-  sendStrXY( tmpstr, 5, 0 );
+  oled.SendStrXY( tmpstr, 3, 0 );
+  sec = millis() / 1000;
+  sprintf( tmpstr, "M:S %8d:%2d\0", ( ( sec % 3600 ) / 60 ), ( sec % 60 ) );
+  oled.SendStrXY( tmpstr, 5, 0 );
   delay(8000);
 
   Serial.println("Drawing waves");
@@ -67,7 +69,7 @@ void loop() {
   Scan_Wifi_Networks();
 
   Serial.print( "Time elapsed so far: " );   
-  Serial.print( ( millis() - startMillis ) /100 );
+  Serial.print( millis() / 1000 );
   Serial.println( "sec." );
   delay(30000);
 
@@ -76,8 +78,7 @@ void loop() {
 void Scan_Wifi_Networks() {
 
   int c = 0;
-  char myStr[13];
-  char mySSIDstr[20];
+  char myStr[16];
 
   // Set WiFi to station mode and disconnect from an AP if it was previously connected
   // Need to be in disconnected mode to Run network Scan!
@@ -90,19 +91,19 @@ void Scan_Wifi_Networks() {
   Serial.println("Scaning Networks Complete..");
   Serial.print(n); Serial.println(" Networks have been Found");
   sprintf( myStr, "%d APs found\0", n );
-  clear_display();
-  sendStrXY( myStr, 3, 0 ); // display the number of APs found
+  oled.ClearDisplay();
+  oled.SendStrXY( myStr, 3, 0 ); // display the number of APs found
   delay(3000);
   
   if (n == 0) {
 
-    clear_display();
-    sendStrXY( "No net found", 3, 0 );
+    oled.ClearDisplay();
+    oled.SendStrXY( "No net found", 3, 0 );
     Serial.println("No networks found");
 
   } else {
 
-    clear_display();
+    oled.ClearDisplay();
 
     Serial.print(n); Serial.println(" networks found");
     for( int i=0; i<n; ++i ) {
@@ -117,15 +118,15 @@ void Scan_Wifi_Networks() {
       Serial.println((WiFi.encryptionType(i) == ENC_TYPE_NONE)?" ":"*");
       delay(10);
  */
-      sprintf( myStr, "%s", WiFi.SSID(i) ); // copy in the SSID
-      strncpy( mySSIDstr, myStr, 12 );      // then truncate it
-      myStr[12] = 0; 
-      sprintf( myStr, "%s %2d\0", myStr, WiFi.RSSI(i) ); // append the RSSI
-      sendStrXY( myStr, c, 0 );
+      sprintf( myStr, "%s", WiFi.SSID(i) );
+      myStr[12] = 0;
+      sprintf( myStr, "%s %2d%1s\0", myStr, WiFi.RSSI(i), (WiFi.encryptionType(i) == ENC_TYPE_NONE)?" ":"*" );
+      oled.SendStrXY( myStr, c, 0 );
+      Serial.println( myStr );
       c++;
       if(c > 7) {
         delay(10000);
-        clear_display();
+        oled.ClearDisplay();
         c = 0 ;
       }
       delay(500);
@@ -135,3 +136,46 @@ void Scan_Wifi_Networks() {
 
   Serial.println("");
 }
+
+void Draw_Waves(void) {
+  unsigned char i,j;
+
+  // oled.DisplayOFF();
+  oled.ClearDisplay();
+  oled.SetCursorXY( 0, 0 );
+
+  // Display Logo here :)
+  for( int i=0; i < 128*8; i++ ) {
+    oled.SendChar( pgm_read_byte( rfwaves + i ) );
+  }
+
+  oled.DisplayON();
+}
+
+void Draw_WiFi(void) {
+  unsigned char i,j;
+
+  oled.DisplayOFF();
+  // ClearDisplay();
+  for( int i=0; i<8; i++ ) {
+    oled.SetCursorXY( i, 0 );
+    for( int j=0; j<16*8; j++ ) {
+        oled.SendChar( pgm_read_byte( WIFI1 + j + i*16*8 ) );
+    }
+  }
+  oled.DisplayON();
+}
+
+/*
+void Draw_WAVES(void) {
+  ClearDisplay();
+  // Display Logo here :)
+  for( int i=0; i<8; i++ ) {
+    setXY( i, 0 );
+    for( int j=0; j<16*8; j++ ) {
+      oled.SendChar( pgm_read_byte( rfwaves + j + i*16*8 ) );
+    }
+  }
+  oled.DisplayON();
+}
+ */
