@@ -1,3 +1,10 @@
+/*
+ * OLEDWiFiScan - example of ESP8266 WiFi scan and OLED listing
+ *
+ * Copyright (c) 2015. Mario Mikočević <mozgy>
+ *
+ * ideas and code snippets - http://www.esp8266.com/viewtopic.php?f=29&t=3256
+ */
 
 #include <Wire.h>
 #include <ESP8266WiFi.h>
@@ -5,11 +12,16 @@
 #include <OLED_SSD1306.h>
 
 #define OLED_ADDRESS  0x3c  //OLED I2C bus address
+#define SCROLL_WORKS 1
+
+// #define OLED_ADDRESS  0x78  //OLED I2C bus address
+// #undef SCROLL_WORKS
+
+
 #define OLED_SDA 0
 #define OLED_SCL 2
 
 #include "font.h"
-// #include "mozz.h"
 
 const char* ssid  = "MozzWiFi";
 const char* pass  = "x";
@@ -53,19 +65,19 @@ void loop() {
   sprintf( tmpstr, "ChipID %d\0", ESP.getChipId() );
   oled.SendStrXY( tmpstr, 3, 0 );
   sec = millis() / 1000;
-  sprintf( tmpstr, "M:S %8d:%2d\0", ( ( sec % 3600 ) / 60 ), ( sec % 60 ) );
+  sprintf( tmpstr, "Elapsed %5d:%2d\0", ( ( sec % 3600 ) / 60 ), ( sec % 60 ) );
   oled.SendStrXY( tmpstr, 5, 0 );
   delay(8000);
 
   Serial.println("Drawing waves");
   Draw_Waves();
-  delay(3000);
+  delay(2000);
 
   Serial.println("Drawing WiFi");
   Draw_WiFi();
   delay(3000);
 
-  Serial.println("Starting Process Scanning...");
+  Serial.println("Starting Scan...");
   Scan_Wifi_Networks();
 
   Serial.print( "Time elapsed so far: " );   
@@ -98,7 +110,7 @@ void Scan_Wifi_Networks() {
   if (n == 0) {
 
     oled.ClearDisplay();
-    oled.SendStrXY( "No net found", 3, 0 );
+    // oled.SendStrXY( "No net found", 3, 0 );
     Serial.println("No networks found");
 
   } else {
@@ -106,18 +118,16 @@ void Scan_Wifi_Networks() {
     oled.ClearDisplay();
 
     Serial.print(n); Serial.println(" networks found");
-    for( int i=0; i<n; ++i ) {
+    for( int i=0; i<n; i++ ) {
       // Print SSID and RSSI for each network found
-/*
-      Serial.print(i + 1);
-      Serial.print(": ");
-      Serial.print(WiFi.SSID(i));
-      Serial.print(" (");
-      Serial.print(WiFi.RSSI(i));
-      Serial.print(")");
-      Serial.println((WiFi.encryptionType(i) == ENC_TYPE_NONE)?" ":"*");
+      Serial.print( i + 1 );
+      Serial.print( ": " );
+      Serial.print( WiFi.SSID(i) );
+      Serial.print( " (" );
+      Serial.print( WiFi.RSSI(i) );
+      Serial.print( ")" );
+      Serial.println( (WiFi.encryptionType(i) == ENC_TYPE_NONE)?" ":"*" );
       delay(10);
- */
       sprintf( myStr, "%s", WiFi.SSID(i) );
       myStr[12] = 0;
       sprintf( myStr, "%s %2d%1s\0", myStr, WiFi.RSSI(i), (WiFi.encryptionType(i) == ENC_TYPE_NONE)?" ":"*" );
@@ -137,45 +147,61 @@ void Scan_Wifi_Networks() {
   Serial.println("");
 }
 
+#ifdef SCROLL_WORKS
+
 void Draw_Waves(void) {
-  unsigned char i,j;
+  unsigned char i;
 
   // oled.DisplayOFF();
-  oled.ClearDisplay();
+  // oled.ClearDisplay();
   oled.SetCursorXY( 0, 0 );
-
-  // Display Logo here :)
   for( int i=0; i < 128*8; i++ ) {
     oled.SendChar( pgm_read_byte( rfwaves + i ) );
   }
-
   oled.DisplayON();
+}
+
+void Draw_WiFi(void) {
+  unsigned char i;
+
+  // oled.DisplayOFF();
+  // oled.ClearDisplay();
+  oled.SetCursorXY( 0, 0 );
+  for( int i=0; i < 128*8; i++ ) {
+    oled.SendChar( pgm_read_byte( WIFI1 + i ) );
+  }
+  oled.DisplayON();
+}
+
+#else
+
+void Draw_Waves(void) {
+  unsigned char i,j;
+
+  oled.DisplayOFF();
+  // oled.ClearDisplay();
+  for( int i=0; i<8; i++ ) {
+    oled.SetCursorXY( i, 0 );
+    for( int j=0; j<16*8; j++ ) {
+      oled.SendChar( pgm_read_byte( rfwaves + j + i*16*8 ) );
+    }
+  }
+  oled.DisplayON();
+
 }
 
 void Draw_WiFi(void) {
   unsigned char i,j;
 
   oled.DisplayOFF();
-  // ClearDisplay();
+  // oled.ClearDisplay();
   for( int i=0; i<8; i++ ) {
     oled.SetCursorXY( i, 0 );
     for( int j=0; j<16*8; j++ ) {
-        oled.SendChar( pgm_read_byte( WIFI1 + j + i*16*8 ) );
+      oled.SendChar( pgm_read_byte( WIFI1 + j + i*16*8 ) );
     }
   }
   oled.DisplayON();
 }
 
-/*
-void Draw_WAVES(void) {
-  ClearDisplay();
-  // Display Logo here :)
-  for( int i=0; i<8; i++ ) {
-    setXY( i, 0 );
-    for( int j=0; j<16*8; j++ ) {
-      oled.SendChar( pgm_read_byte( rfwaves + j + i*16*8 ) );
-    }
-  }
-  oled.DisplayON();
-}
- */
+#endif
