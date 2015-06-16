@@ -90,7 +90,7 @@ void loop() {
 void Scan_Wifi_Networks() {
 
   int c = 0;
-  char myStr[16];
+  char myStr[17];
 
   // Set WiFi to station mode and disconnect from an AP if it was previously connected
   // Need to be in disconnected mode to Run network Scan!
@@ -129,7 +129,7 @@ void Scan_Wifi_Networks() {
       Serial.println( (WiFi.encryptionType(i) == ENC_TYPE_NONE)?" ":"*" );
       delay(10);
       sprintf( myStr, "%s", WiFi.SSID(i) );
-      myStr[12] = 0;
+      myStr[11] = 0;
       sprintf( myStr, "%s %2d%1s\0", myStr, WiFi.RSSI(i), (WiFi.encryptionType(i) == ENC_TYPE_NONE)?" ":"*" );
       oled.SendStrXY( myStr, c, 0 );
       Serial.println( myStr );
