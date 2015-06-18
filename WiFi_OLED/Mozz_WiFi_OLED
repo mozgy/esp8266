@@ -58,15 +58,29 @@ void setup() {
 
 void loop() {
 
-  unsigned long sec;
+  unsigned long sec, minute, hour;
 
   oled.ClearDisplay();
-  oled.SendStrXY( "Start-up ....  ", 1, 1 );
+  oled.SendStrXY( "Start-up ....  ", 0, 1 );
   sprintf( tmpstr, "ChipID %d\0", ESP.getChipId() );
-  oled.SendStrXY( tmpstr, 3, 0 );
+  oled.SendStrXY( tmpstr, 2, 0 );
   sec = millis() / 1000;
-  sprintf( tmpstr, "Elapsed %5d:%2d\0", ( ( sec % 3600 ) / 60 ), ( sec % 60 ) );
-  oled.SendStrXY( tmpstr, 5, 0 );
+  minute = ( sec % 3600 ) / 60;
+  hour = sec / 3600;
+  sprintf( tmpstr, "Elapsed \0" );
+  if ( hour == 0 ) {
+    sprintf( tmpstr, "%s   \0", tmpstr );
+  } else {
+    sprintf( tmpstr, "%s%2d:\0", tmpstr, hour );
+  }
+  if ( minute == 0 ) {
+    sprintf( tmpstr, "%s   \0", tmpstr );
+  } else {
+    sprintf( tmpstr, "%s%2d:\0", tmpstr, minute );
+  }
+  sprintf( tmpstr, "%s%2d\0", tmpstr, ( sec % 60 ) );
+  // sprintf( tmpstr, "Elapsed %5d:%2d\0", ( ( sec % 3600 ) / 60 ), ( sec % 60 ) );
+  oled.SendStrXY( tmpstr, 6, 0 );
   delay(8000);
 
   Serial.println("Drawing waves");
