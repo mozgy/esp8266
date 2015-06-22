@@ -14,7 +14,7 @@
 #include <stdio.h>
 
 const char* ssid  = "MozzWiFi";
-const char* pass  = "x";
+const char* pass  = "TrlaBabaLana";
 const char* host  = "mozgy.t-com.hr";
 
 /*
@@ -39,6 +39,8 @@ DallasTemperature sensors( &oneWire );
 
 char tmpstr[32];
 
+uint8_t xTemp, yTemp;
+
 extern "C" {
 #include "user_interface.h"
 }
@@ -59,10 +61,18 @@ void setup( void ) {
   tft.setTextWrap( false );
   tft.setTextColor( ST7735_WHITE );
   tft.setRotation( 3 );
+  tft.fillScreen( ST7735_BLACK );
   Serial.println("TFT Init...");
 
   sensors.begin();
   Serial.println("DS18B20 Init...");
+
+  xTemp = 0;
+  yTemp = 0;
+
+  sprintf( tmpstr, "ChipID %d\0", ESP.getChipId() );
+  tft.setCursor( 0, 16 );
+  tft.print( tmpstr );
 
   Serial.println("Setup done");
 
@@ -73,7 +83,7 @@ void loop() {
   float temp;
   char t[10];
 
-  tft.fillScreen( ST7735_BLACK );
+  // tft.fillScreen( ST7735_BLACK );
 
   sensors.requestTemperatures();
   Serial.print("Temperature for Device 1 is: ");
@@ -81,18 +91,32 @@ void loop() {
   Serial.print( temp );
   Serial.println();
 
-  sprintf( tmpstr, "ChipID %d\0", ESP.getChipId() );
-  tft.setCursor( 0, 24 );
-  tft.print( tmpstr );
-
   dtostrf( temp, 3, 2, t);
   sprintf( tmpstr, "Temp %s\0", t );
-  tft.setCursor( 0, 48 );
+  tft.fillRect( 0, 32, 80, 8, ST7735_BLACK );
+  tft.setCursor( 0, 32 );
   tft.print( tmpstr );
 
   ElapsedStr(); // form str with hh:mm:ss
-  tft.setCursor( 0, 72 );
+  tft.fillRect( 0, 40, 96, 8, ST7735_BLACK );
+  tft.setCursor( 0, 40 );
   tft.print( tmpstr );
+
+  // 1°C resolution -10 - +50
+  // yTemp = 117 - temp + 0;
+
+  // 2°C resolution +5 - +35
+  // yTemp = 117 - temp * 2 + 30;
+
+  // 3°C resolution +x - +x
+  yTemp = 117 - temp * 3 + 45;
+
+  tft.drawPixel( xTemp, yTemp, ST7735_YELLOW );
+  xTemp++;
+  if ( xTemp > 150 ) {
+    xTemp = 0;
+    tft.fillRect( 0, 60, 151, 60, ST7735_BLACK );
+  }
 
   delay(10000);
 
@@ -105,23 +129,26 @@ void ElapsedStr( void ) {
   sec = millis() / 1000;
   minute = ( sec % 3600 ) / 60;
   hour = sec / 3600;
-  sprintf( tmpstr, "Elapsed \0" );
+  sprintf( tmpstr, "Elapsed " );
   if ( hour == 0 ) {
-    sprintf( tmpstr, "%s   \0", tmpstr );
+    sprintf( tmpstr, "%s   ", tmpstr );
   } else {
-    sprintf( tmpstr, "%s%2d:\0", tmpstr, hour );
+    sprintf( tmpstr, "%s%2d:", tmpstr, hour );
   }
   if ( minute == 0 ) {
-    sprintf( tmpstr, "%s   \0", tmpstr );
+    if ( hour == 0 ) {
+      sprintf( tmpstr, "%s   ", tmpstr );
+    } else {
+      sprintf( tmpstr, "%s0%1d:", tmpstr );
+    }
   } else {
-    sprintf( tmpstr, "%s%2d:\0", tmpstr, minute );
+    sprintf( tmpstr, "%s%2d:", tmpstr, minute );
   }
   if ( ( sec % 60 ) < 10 ) {
-    sprintf( tmpstr, "%s0%1d\0", tmpstr, ( sec % 60 ) );
+    sprintf( tmpstr, "%s0%1d", tmpstr, ( sec % 60 ) );
   } else {
-    sprintf( tmpstr, "%s%2d\0", tmpstr, ( sec % 60 ) );
+    sprintf( tmpstr, "%s%2d", tmpstr, ( sec % 60 ) );
   }
-  // sprintf( tmpstr, "Elapsed %2d:%2d:%2d\0", ( sec / 3600 ), ( ( sec % 3600 ) / 60 ), ( sec % 60 ) );
+  // sprintf( tmpstr, "Elapsed %2d:%2d:%2d", ( sec / 3600 ), ( ( sec % 3600 ) / 60 ), ( sec % 60 ) );
 
 }
-
