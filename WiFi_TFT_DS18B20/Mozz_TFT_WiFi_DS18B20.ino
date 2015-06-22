@@ -14,7 +14,7 @@
 #include <stdio.h>
 
 const char* ssid  = "MozzWiFi";
-const char* pass  = "TrlaBabaLana";
+const char* pass  = "x";
 const char* host  = "mozgy.t-com.hr";
 
 /*
