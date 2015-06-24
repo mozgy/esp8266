@@ -131,18 +131,23 @@ void ElapsedStr( void ) {
   hour = sec / 3600;
   sprintf( tmpstr, "Elapsed " );
   if ( hour == 0 ) {
-    sprintf( tmpstr, "%s   ", tmpstr );
+    sprintf( tmpstr, "%s    ", tmpstr );
   } else {
-    sprintf( tmpstr, "%s%2d:", tmpstr, hour );
+    sprintf( tmpstr, "%s%3d:", tmpstr, hour );
   }
-  if ( minute == 0 ) {
-    if ( hour == 0 ) {
-      sprintf( tmpstr, "%s   ", tmpstr );
-    } else {
-      sprintf( tmpstr, "%s0%1d:", tmpstr );
-    }
-  } else {
+  if ( minute >= 10 ) {
     sprintf( tmpstr, "%s%2d:", tmpstr, minute );
+  } else {
+    if ( hour != 0 ) {
+      sprintf( tmpstr, "%s0%1d:", tmpstr, minute );
+    } else {
+      sprintf( tmpstr, "%s ", tmpstr );
+      if ( minute == 0 ) {
+        sprintf( tmpstr, "%s  ", tmpstr );
+      } else {
+        sprintf( tmpstr, "%s%1d:", tmpstr, minute );
+      }
+    }
   }
   if ( ( sec % 60 ) < 10 ) {
     sprintf( tmpstr, "%s0%1d", tmpstr, ( sec % 60 ) );
