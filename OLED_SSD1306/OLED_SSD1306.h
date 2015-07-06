@@ -16,13 +16,15 @@
 #ifndef OLED_SSD1306_H
 #define OLED_SSD1306_H
 
-#ifndef OLED_ADDRESS
-#define OLED_ADDRESS 0x3C
-#endif
-
 class OLED_SSD1306 {
 
+  private:
+
+    int localI2CAddress;
+
   public:
+
+    OLED_SSD1306( int i2caddr );
 
     void Init(void);
 
