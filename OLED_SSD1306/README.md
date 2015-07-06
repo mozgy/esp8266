@@ -1,5 +1,19 @@
 My take on SSD1306 library,
 works with 0.96" and 1.3" OLEDs
 
+example ->
+
+#define OLED_ADDRESS  0x3c
+OLED_SSD1306 oled( OLED_ADDRESS );
+void setup() {
+  Serial.println("OLED Init...");
+  oled.Init();
+}
+void loop() {
+  oled.ClearDisplay();
+  oled.SendStrXY( "Hello World!", 3, 0 );
+}
+
+
 --
 Mozz
