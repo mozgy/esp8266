@@ -3,6 +3,7 @@ works with 0.96" and 1.3" OLEDs
 
 example ->
 
+<code>
 #define OLED_ADDRESS  0x3c
 OLED_SSD1306 oled( OLED_ADDRESS );
 void setup() {
@@ -13,7 +14,7 @@ void loop() {
   oled.ClearDisplay();
   oled.SendStrXY( "Hello World!", 3, 0 );
 }
-
+</code>
 
 --
 Mozz
