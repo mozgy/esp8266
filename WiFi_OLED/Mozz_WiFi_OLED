@@ -39,9 +39,13 @@
 // #define OLED_ADDRESS  0x78  //OLED I2C bus address
 // #undef SCROLL_WORKS
 
-
+// HW SPI pins
+// #define OLED_SDA 13
+// #define OLED_SCL 14
+// ESP-01 pins
 #define OLED_SDA 0
 #define OLED_SCL 2
+
 
 #include "font.h"
 
@@ -49,7 +53,8 @@ const char* ssid  = "MozzWiFi";
 const char* pass  = "x";
 const char* host  = "mozgy.t-com.hr";
 
-OLED_SSD1306 oled( OLED_ADDRESS, OLED_SDA, OLED_SCL );
+// OLED_SSD1306 oled( OLED_ADDRESS, OLED_SDA, OLED_SCL );
+OLED_SSD1306 oled( OLED_ADDRESS );
 
 char tmpstr[20];
 
@@ -68,7 +73,8 @@ void setup() {
   Serial.print("CPU: "); Serial.println(system_get_cpu_freq());
   Serial.println();
 
-  // Wire.begin( OLED_SDA, OLED_SCL );
+  Wire.begin( OLED_SDA, OLED_SCL );
+  Wire.setClock( 400000 );
 
   Serial.println("OLED Init...");
   oled.Init();
@@ -91,15 +97,15 @@ void loop() {
   // oled.SendStrXY( tmpstr, 4, 0 );
   ElapsedStr(); // form str with hh:mm:ss
   oled.SendStrXY( tmpstr, 6, 0 );
-  delay(8000);
+  delay(10000);
 
   Serial.println("Drawing waves");
   Draw_Waves();
-  delay(2000);
+  delay(1500);
 
   Serial.println("Drawing WiFi");
   Draw_WiFi();
-  delay(3000);
+  delay(2000);
 
   Serial.println("Starting Scan...");
   Scan_Wifi_Networks();
@@ -147,6 +153,9 @@ void Scan_Wifi_Networks() {
       Serial.print( i + 1 );
       Serial.print( ": " );
       Serial.print( WiFi.SSID(i) );
+      // lets try
+      // Serial.print( " %2d ", wifi_get_channel() );
+      // lets try
       Serial.print( " (" );
       Serial.print( WiFi.RSSI(i) ); // RSSI is negative number so '-' sign in front
       Serial.print( ")" );
