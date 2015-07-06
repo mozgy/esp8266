@@ -18,15 +18,19 @@
 #include "OLED_SSD1306.h"
 #include "font.h"
 
+OLED_SSD1306::OLED_SSD1306( int i2caddr ) {
+  localI2CAddress = i2caddr;
+}
+
 void OLED_SSD1306::SendCommand( unsigned char cmd ) {
-  Wire.beginTransmission( OLED_ADDRESS );
+  Wire.beginTransmission( localI2CAddress );
   Wire.write( 0x80 );
   Wire.write( cmd );
   Wire.endTransmission();
 }
 
 void OLED_SSD1306::SendChar( unsigned char data ) {
-  Wire.beginTransmission( OLED_ADDRESS );
+  Wire.beginTransmission( localI2CAddress );
   Wire.write( 0x40 );
   Wire.write( data );
   Wire.endTransmission();
