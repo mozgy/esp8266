@@ -41,6 +41,9 @@ class OLED_SSD1306 {
     void BlinkOFF( void );
     void ClearDisplay( void );
 
+    void DisplayFlipON( void );
+    void DisplayFlipOFF( void );
+
     void ScrollRight( unsigned char start, unsigned char end, unsigned char speed );
     void ScrollStop( void );
 
