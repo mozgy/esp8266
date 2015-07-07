@@ -11,6 +11,8 @@
  *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  *   Lesser General Public License for more details.
  *
+ *   Copyright (c) 2015. Mario Mikočević <mozgy>
+ *
  */
 
 #ifndef OLED_SSD1306_H
