@@ -99,6 +99,16 @@ void OLED_SSD1306::ScrollStop( void ) {
   SendCommand( 0x2E );  // Deactivate Scroll
 }
 
+void OLED_SSD1306::DisplayFlipON( void ) {
+  SendCommand( 0xC0 );  // Set COM Output Scan Direction
+  SendCommand( 0xA0 );  // Set Segment Re-Map
+}
+
+void OLED_SSD1306::DisplayFlipOFF( void ) {
+  SendCommand( 0xC8 );  // Set COM Output Scan Direction
+  SendCommand( 0xA1 );  // Set Segment Re-Map
+}
+
 void OLED_SSD1306::BlinkOFF(void) {
   SendCommand( 0xA4 );  // Entire Display Normal
 }
