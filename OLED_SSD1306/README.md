@@ -8,6 +8,7 @@ example ->
 OLED_SSD1306 oled( OLED_ADDRESS );
 void setup() {
   Serial.println("OLED Init...");
+  Wire.begin( SDA_pin, SCL_pin );
   oled.Init();
 }
 void loop() {
