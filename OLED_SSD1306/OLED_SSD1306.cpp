@@ -101,13 +101,14 @@ void OLED_SSD1306::ScrollStop( void ) {
 
 void OLED_SSD1306::DisplayFlipON( void ) {
   SendCommand( 0xC0 );  // Set COM Output Scan Direction
-  SendCommand( 0xA0 );  // Set Segment Re-Map
+  SendCommand( 0xA0 );  // Set Segment Re-Map // column 0 mapped to SEG0
 }
 
 void OLED_SSD1306::DisplayFlipOFF( void ) {
   SendCommand( 0xC8 );  // Set COM Output Scan Direction
-  SendCommand( 0xA1 );  // Set Segment Re-Map
+  SendCommand( 0xA1 );  // Set Segment Re-Map // column 127 mapped to SEG0
 }
+// 0xC0 & 0xA1 or 0xC8 & 0xA0 combinations are mirror like text
 
 void OLED_SSD1306::BlinkOFF(void) {
   SendCommand( 0xA4 );  // Entire Display Normal
