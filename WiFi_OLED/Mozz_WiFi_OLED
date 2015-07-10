@@ -39,19 +39,17 @@
 // #define OLED_ADDRESS  0x78  //OLED I2C bus address
 // #undef SCROLL_WORKS
 
-// HW SPI pins
-// #define OLED_SDA 13
-// #define OLED_SCL 14
-// ESP-01 pins
-#define OLED_SDA 0
-#define OLED_SCL 2
-
+//// HW SPI pins
+// #define SDA_pin 13
+// #define SCL_pin 14
+// I2C pins
+#define SDA_pin 4
+#define SCL_pin 5
+//// ESP-01 pins
+//#define SDA_pin 0
+//#define SCL_pin 2
 
 #include "font.h"
-
-const char* ssid  = "MozzWiFi";
-const char* pass  = "x";
-const char* host  = "mozgy.t-com.hr";
 
 // OLED_SSD1306 oled( OLED_ADDRESS, OLED_SDA, OLED_SCL );
 OLED_SSD1306 oled( OLED_ADDRESS );
@@ -65,7 +63,7 @@ extern "C" {
 void setup() {
 
   Serial.begin(115200);
-  delay(2000); // wait for uart to settle and print Espressif blurb..
+
   // print out all system information
   Serial.println();
   Serial.print("Heap: "); Serial.println(system_get_free_heap_size());
@@ -73,7 +71,7 @@ void setup() {
   Serial.print("CPU: "); Serial.println(system_get_cpu_freq());
   Serial.println();
 
-  Wire.begin( OLED_SDA, OLED_SCL );
+  Wire.begin( SDA_pin, SCL_pin );
   Wire.setClock( 400000 );
 
   Serial.println("OLED Init...");
@@ -85,7 +83,7 @@ void setup() {
 
 void loop() {
 
-  unsigned long sec, minute, hour;
+  unsigned long sec;
 
   oled.ClearDisplay();
   oled.SendStrXY( "Start-up ....  ", 0, 1 );
@@ -95,7 +93,7 @@ void loop() {
   oled.SendStrXY( tmpstr, 3, 0 );
   // sprintf( tmpstr, "Flash %d", ESP.getFlashChipSize() / 1024 );
   // oled.SendStrXY( tmpstr, 4, 0 );
-  ElapsedStr(); // form str with hh:mm:ss
+  ElapsedStr( tmpstr ); // form str with hh:mm:ss
   oled.SendStrXY( tmpstr, 6, 0 );
   delay(10000);
 
@@ -180,39 +178,38 @@ void Scan_Wifi_Networks() {
   Serial.println("");
 }
 
-void ElapsedStr( void ) {
+void ElapsedStr( char *str ) {
 
   unsigned long sec, minute, hour;
 
   sec = millis() / 1000;
   minute = ( sec % 3600 ) / 60;
   hour = sec / 3600;
-  sprintf( tmpstr, "Elapsed " );
+  sprintf( str, "Elapsed " );
   if ( hour == 0 ) {
-    sprintf( tmpstr, "%s   ", tmpstr );
+    sprintf( str, "%s   ", str );
   } else {
-    sprintf( tmpstr, "%s%2d:", tmpstr, hour );
+    sprintf( str, "%s%2d:", str, hour );
   }
   if ( minute >= 10 ) {
-    sprintf( tmpstr, "%s%2d:", tmpstr, minute );
+    sprintf( str, "%s%2d:", str, minute );
   } else {
     if ( hour != 0 ) {
-      sprintf( tmpstr, "%s0%1d:", tmpstr, minute );
+      sprintf( str, "%s0%1d:", str, minute );
     } else {
-      sprintf( tmpstr, "%s ", tmpstr );
+      sprintf( str, "%s ", str );
       if ( minute == 0 ) {
-        sprintf( tmpstr, "%s  ", tmpstr );
+        sprintf( str, "%s  ", str );
       } else {
-        sprintf( tmpstr, "%s%1d:", tmpstr, minute );
+        sprintf( str, "%s%1d:", str, minute );
       }
     }
   }
   if ( ( sec % 60 ) < 10 ) {
-    sprintf( tmpstr, "%s0%1d", tmpstr, ( sec % 60 ) );
+    sprintf( str, "%s0%1d", str, ( sec % 60 ) );
   } else {
-    sprintf( tmpstr, "%s%2d", tmpstr, ( sec % 60 ) );
+    sprintf( str, "%s%2d", str, ( sec % 60 ) );
   }
-  // sprintf( tmpstr, "Elapsed %2d:%2d:%2d", ( sec / 3600 ), ( ( sec % 3600 ) / 60 ), ( sec % 60 ) );
 
 }
 
