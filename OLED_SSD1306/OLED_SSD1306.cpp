@@ -38,7 +38,6 @@ void OLED_SSD1306::SendChar( unsigned char data ) {
 }
 
 void OLED_SSD1306::SetCursorXY( unsigned char row, unsigned char col ) {
-  unsigned char offset;
 
 #ifndef OLED_SH1106
   unsigned char offset = 0;
