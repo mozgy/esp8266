@@ -17,5 +17,10 @@ void loop() {
 }
 ```
 
+for SH1106 OLEDs (like some 1.3" ones from ebay) just add
+``` c++
+#define OLED_SH1106
+```
+
 --
 Mozz
