@@ -6,6 +6,7 @@ example ->
 ``` c++
 #define OLED_ADDRESS 0x3C
 OLED_SSD1306 oled( OLED_ADDRESS );
+
 void setup() {
   Serial.println("OLED Init...");
   Wire.begin( SDA_pin, SCL_pin );
@@ -17,9 +18,11 @@ void loop() {
 }
 ```
 
-for SH1106 OLEDs (like some 1.3" ones from ebay) just add
+for SH1106 OLEDs (like some 1.3" ones from ebay) change to
 ``` c++
-#define OLED_SH1106
+#define OLED_ADDRESS 0x3C
+#define SH1106_LC_OFFSET 2
+OLED_SSD1306 oled( OLED_ADDRESS, SH1106_LC_OFFSET );
 ```
 
 --
