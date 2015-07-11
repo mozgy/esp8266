@@ -19,8 +19,14 @@
 #include "OLED_SSD1306.h"
 #include "font.h"
 
-OLED_SSD1306::OLED_SSD1306( int i2caddr ) {
+OLED_SSD1306::OLED_SSD1306( uint8_t i2caddr ) {
   localI2CAddress = i2caddr;
+  low_col_offset = 0;
+}
+
+OLED_SSD1306::OLED_SSD1306( uint8_t i2caddr, uint8_t offset ) {
+  localI2CAddress = i2caddr;
+  low_col_offset = 2;
 }
 
 void OLED_SSD1306::SendCommand( unsigned char cmd ) {
@@ -38,15 +44,8 @@ void OLED_SSD1306::SendChar( unsigned char data ) {
 }
 
 void OLED_SSD1306::SetCursorXY( unsigned char row, unsigned char col ) {
-
-#ifndef OLED_SH1106
-  unsigned char offset = 0;
-#else
-  unsigned char offset = 2;
-#endif
-
   OLED_SSD1306::SendCommand( 0xB0 + ( row & 0x0F ) );               // set page address
-  OLED_SSD1306::SendCommand( 0x00 + ( 8 * col & 0x0F ) + offset );  // set low col address
+  OLED_SSD1306::SendCommand( 0x00 + ( 8 * col & 0x0F ) + low_col_offset );  // set low col address
   OLED_SSD1306::SendCommand( 0x10 + ( ( 8 * col>>4 ) & 0x0F ) );    // set high col address
 }
 
@@ -68,16 +67,10 @@ void OLED_SSD1306::SendStrXY( const char *string, int X, int Y ) {
 void OLED_SSD1306::ClearDisplay(void) {
   unsigned char i,j;
 
-#ifndef OLED_SH1106
-  unsigned char width = 128;
-#else
-  unsigned char width = 132;
-#endif
-
   OLED_SSD1306::DisplayOFF();
   for( int i=0; i < 8; i++ ) {
     OLED_SSD1306::SetCursorXY( i, 0 );
-    for( int j=0; j < width; j++ ) {
+    for( int j=0; j < 128; j++ ) {
       OLED_SSD1306::SendChar( 0x00 );
     }
   }
@@ -186,13 +179,11 @@ void OLED_SSD1306::Init(void) {
   SendCommand( 0x8D );  // Set Charge Pump
   SendCommand( 0x14 );  // Vcc internal
 
-  SendCommand( 0x00 );  // Set Lower Column Start Address
+  SendCommand( 0x00 + low_col_offset );  // Set Lower Column Start Address
 
   SendCommand( 0x10 );  // Set Higher Column Start Address
 
   SendCommand( 0xB0 );  // Set Page Start Address for Page Addressing Mode
-
-#ifndef OLED_SH1106
 
   // 00 - Horizontal Addressing Mode
   // 01 - Vertical Addressing Mode
@@ -209,8 +200,6 @@ void OLED_SSD1306::Init(void) {
   SendCommand( 0x07 );
 
   SendCommand( 0x2E );  // Deactivate Scroll
-
-#endif
   
   SendCommand( 0xAF );  // Set Display On
 
