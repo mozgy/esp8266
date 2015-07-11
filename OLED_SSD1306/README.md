@@ -4,7 +4,7 @@ works with 0.96" and 1.3" OLEDs
 example ->
 
 ``` c++
-#define OLED_ADDRESS  0x3c
+#define OLED_ADDRESS 0x3C
 OLED_SSD1306 oled( OLED_ADDRESS );
 void setup() {
   Serial.println("OLED Init...");
