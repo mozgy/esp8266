@@ -22,13 +22,15 @@ class OLED_SSD1306 {
 
   private:
 
-    int localI2CAddress;
+    uint8_t localI2CAddress;
+    uint8_t low_col_offset;
 
   public:
 
-    OLED_SSD1306( int i2caddr );
+    OLED_SSD1306( uint8_t i2caddr );
+    OLED_SSD1306( uint8_t i2caddr, uint8_t offset );
 
-    void Init(void);
+    void Init( void );
 
     void SendCommand( unsigned char Command );
     void SendChar( unsigned char Data );
