@@ -28,16 +28,21 @@
  * 
  */
 
+// Serial printing ON/OFF
+#include "Arduino.h"
+#define DEBUG false
+#define Serial if(DEBUG)Serial
+
 #include <Wire.h>
 #include <ESP8266WiFi.h>
 #include <stdio.h>
 #include <OLED_SSD1306.h>
+#include "font.h"
 
-#define OLED_ADDRESS  0x3c  //OLED I2C bus address
-#define SCROLL_WORKS 1
-
-// #define OLED_ADDRESS  0x78  //OLED I2C bus address
-// #undef SCROLL_WORKS
+/*
+ * SSD1306 - 0.96" 128x64
+ * SH1106  - 1.3"  132x64
+ */
 
 //// HW SPI pins
 // #define SDA_pin 13
@@ -49,10 +54,17 @@
 //#define SDA_pin 0
 //#define SCL_pin 2
 
-#include "font.h"
+#define OLED_ADDRESS 0x3C
+// #define OLED_ADDRESS 0x78
+// #define SCROLL_WORKS
+#undef SCROLL_WORKS
 
-// OLED_SSD1306 oled( OLED_ADDRESS, OLED_SDA, OLED_SCL );
-OLED_SSD1306 oled( OLED_ADDRESS );
+// 0.96" OLED
+// OLED_SSD1306 oled( OLED_ADDRESS );
+
+// 1.3" OLED
+#define SH1106_LC_OFFSET 2
+OLED_SSD1306 oled( OLED_ADDRESS, SH1106_LC_OFFSET );
 
 char tmpstr[20];
 
@@ -76,6 +88,7 @@ void setup() {
 
   Serial.println("OLED Init...");
   oled.Init();
+  // oled.DisplayFlipON();
 
   Serial.println("Setup done");
 
