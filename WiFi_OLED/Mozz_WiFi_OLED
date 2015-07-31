@@ -48,28 +48,29 @@
 // #define SDA_pin 13
 // #define SCL_pin 14
 // I2C pins
-#define SDA_pin 4
-#define SCL_pin 5
+// #define SDA_pin 4
+// #define SCL_pin 5
 //// ESP-01 pins
-//#define SDA_pin 0
-//#define SCL_pin 2
+#define SDA_pin 0
+#define SCL_pin 2
 
 #define OLED_ADDRESS 0x3C
 // #define OLED_ADDRESS 0x78
-// #define SCROLL_WORKS
-#undef SCROLL_WORKS
+#define SCROLL_WORKS
+// #undef SCROLL_WORKS
 
 // 0.96" OLED
-// OLED_SSD1306 oled( OLED_ADDRESS );
+OLED_SSD1306 oled( OLED_ADDRESS );
 
 // 1.3" OLED
-#define SH1106_LC_OFFSET 2
-OLED_SSD1306 oled( OLED_ADDRESS, SH1106_LC_OFFSET );
+// #define SH1106_LC_OFFSET 2
+// OLED_SSD1306 oled( OLED_ADDRESS, SH1106_LC_OFFSET );
 
 char tmpstr[20];
 
 extern "C" {
 #include "user_interface.h"
+uint32_t readvdd33(void);
 }
 
 void setup() {
@@ -78,9 +79,10 @@ void setup() {
 
   // print out all system information
   Serial.println();
-  Serial.print("Heap: "); Serial.println(system_get_free_heap_size());
-  Serial.print("Boot Vers: "); Serial.println(system_get_boot_version());
-  Serial.print("CPU: "); Serial.println(system_get_cpu_freq());
+  Serial.print(F("Heap: ")); Serial.println(system_get_free_heap_size());
+  Serial.print(F("Boot Vers: ")); Serial.println(system_get_boot_version());
+  Serial.print(F("CPU: ")); Serial.println(system_get_cpu_freq());
+  Serial.print(F("SDK: ")); Serial.println(system_get_sdk_version());
   Serial.println();
 
   Wire.begin( SDA_pin, SCL_pin );
@@ -97,15 +99,25 @@ void setup() {
 void loop() {
 
   unsigned long sec;
+  float Vdd;
+  char tmpstr2[10];
 
   oled.ClearDisplay();
-  oled.SendStrXY( "Start-up ....  ", 0, 1 );
-  sprintf( tmpstr, "ChipID %d", ESP.getChipId() );
+//  oled.SendStrXY( "Start-up ....  ", 0, 1 );
+  sprintf( tmpstr, "ChipID %9d", ESP.getChipId() );
+  oled.SendStrXY( tmpstr, 1, 0 );
+  // sprintf( tmpstr, "FlashID %06X", ESP.getFlashChipId() );
+  sprintf( tmpstr, "SDK %10s", ESP.getSdkVersion() );
   oled.SendStrXY( tmpstr, 2, 0 );
-  sprintf( tmpstr, "FlashID %06X", ESP.getFlashChipId() );
+  sprintf( tmpstr, "Flash   %dkB", ESP.getFlashChipSize() / 1024 );
   oled.SendStrXY( tmpstr, 3, 0 );
-  // sprintf( tmpstr, "Flash %d", ESP.getFlashChipSize() / 1024 );
-  // oled.SendStrXY( tmpstr, 4, 0 );
+//  sprintf( tmpstr, "Vcc %d", ESP.getVcc() );
+//  Vdd = (float)ESP.getVcc() / 1000.0;
+  sprintf( tmpstr, "Vcc %d", readvdd33() );
+  Vdd = (float)readvdd33() / 1000.0;
+  dtostrf( Vdd, 6, 3, tmpstr2 );
+  sprintf( tmpstr, "Vcc %s", tmpstr2 );
+  oled.SendStrXY( tmpstr, 5, 0 );
   ElapsedStr( tmpstr ); // form str with hh:mm:ss
   oled.SendStrXY( tmpstr, 6, 0 );
   delay(10000);
