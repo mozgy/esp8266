@@ -33,9 +33,14 @@
 #include <WiFiClient.h>
 
 #include <ArduinoJson.h>
+#define REALDATA
+// #undef REALDATA
+// #define HTTPDEBUG
+#undef HTTPDEBUG
+char httpJson[1200] = "";
 
 #include <stdio.h>
-#include <OLED_SSD1306.h>
+// #include <OLED_SSD1306.h>
 #include "font.h"
 
 /*
@@ -59,7 +64,7 @@
 // #undef SCROLL_WORKS
 
 // 0.96" OLED
-OLED_SSD1306 oled( OLED_ADDRESS );
+// OLED_SSD1306 oled( OLED_ADDRESS );
 
 // 1.3" OLED
 // #define SH1106_LC_OFFSET 2
@@ -83,6 +88,7 @@ uint32_t readvdd33(void);
 void setup() {
 
   Serial.begin(115200);
+  Serial.setDebugOutput(true);
 
   // print out all system information
   Serial.println();
@@ -101,6 +107,8 @@ void setup() {
   // oled.DisplayFlipON();
 
   initWiFi();
+  setupURL();
+
 
   Serial.println("Setup done");
 
@@ -111,122 +119,26 @@ void setup() {
 void loop() {
 
   unsigned long sec;
-  float Vdd;
   char tmpstr2[10];
-
-#define REALDATA
-//#define HTTPDEBUG
-#undef HTTPDEBUG
+  boolean someflag;
 
   if( foo == 0 ) {
-    WiFiClient client;
-    setupURL();
 
-#ifdef REALDATA
-    if( client.connect( urlHost, 80 ) ) {
-      client.println( urlCall );
+    someflag = getOpenWeatherMapData();
+    if( someflag ) {
+      someflag = parseOpenWeatherMapJSON();
     }
-#endif
-#ifdef HTTPDEBUG
-    Serial.println(urlHost);
-    Serial.println(urlCall);
-#endif
-
-    // Read all the lines of the reply from server and print them to Serial
-    String httpResponse;
-    // TODO - check for overflow
-#ifdef REALDATA
-    char httpJson[1200] = "";
-#else
-    char httpJson[] = "{\
-      \"coord\":{\"lon\":16.38,\"lat\":45.47},\
-      \"weather\":[{\"id\":800,\"main\":\"Clear\",\"description\":\"Sky is Clear\",\"icon\":\"01d\"}],\
-      \"base\":\"stations\",\
-      \"main\":{\"temp\":301.21,\"pressure\":1016,\"humidity\":38,\"temp_min\":297.15,\"temp_max\":306.15},\
-      \"id\":3190813,\"name\":\"Sisak\",\"cod\":200\
-      }";
-#endif
-
-#ifdef REALDATA
-    while( client.available() ) {
-      String line;
-      line = client.readStringUntil('\r');
-      httpResponse += line;
-      if( line.charAt(1) == '{' ) {
-        unsigned int lnlen = line.length();
-        line.toCharArray( httpJson, lnlen );
- #ifdef HTTPDEBUG
-        Serial.println(line);
-        Serial.print("JSON LEN : ");
-        Serial.println(lnlen);
-        Serial.println(httpJson);
- #endif
-      }
+    if( !someflag ) {
+      Serial.println( "Parsing went wrong !" );
     }
- #ifdef HTTPDEBUG
-    Serial.println();
-    Serial.print(httpResponse);
-    Serial.print("HTTP LEN : ");
-    Serial.println(httpResponse.length());
- #endif
-#endif
-
-
-    StaticJsonBuffer<2047> jsonBuffer;
-    JsonObject &HttpData = jsonBuffer.parseObject( httpJson );
-
-    if ( !HttpData.success() ) {
-      Serial.println("parsing failed");
-    }
-
-    JsonObject &CoordData = HttpData["coord"];
-    JsonObject &WeatherData = HttpData["weather"];
-    JsonObject &MainData = HttpData["main"];
-    JsonObject &SysData = HttpData["sys"];
-
-    const char* CityBase = HttpData["base"];
-    const char* CityName = HttpData["name"];
-    double CityLon = CoordData["lon"];
-    double CityLat = CoordData["lat"];
-    unsigned long CityId = HttpData["id"];
-    unsigned long CitySunrise = SysData["sunrise"];
-    unsigned long CitySunset = SysData["sunset"];
-    double CityTempMin = MainData["temp_min"];
-    double CityTempMax = MainData["temp_max"];
-
-    Serial.print("Buffer - ");
-    Serial.println(jsonBuffer.size());
-    Serial.print("JSON - ");
-    Serial.println(HttpData.measureLength());
-    Serial.print("JSON - ");
-    Serial.println(HttpData.size());    
-    Serial.print("- ");
-    Serial.println(CityBase);
-    Serial.print("- ");
-    Serial.println(CityName);
-    Serial.print("- ");
-    Serial.println(CityId);
-    Serial.print("- ");
-    Serial.println(CityLon);
-    Serial.print("- ");
-    Serial.println(CityLat);
-    Serial.print("- ");
-    Serial.println(CitySunrise);
-    Serial.print("- ");
-    Serial.println(CitySunset);
-    Serial.print("- ");
-    Serial.println(CityTempMin);
-    Serial.print("- ");
-    Serial.println(CityTempMax);
 
     Serial.println();
     Serial.print( "Time elapsed so far: " );
     Serial.print( millis() / 1000 );
     Serial.println( "sec." );
-    delay(30);
-    client.stop();
+    delay(10);
   }
-  delay(10);
+  delay(6);
   foo++;
   // 10 delay + 100000 -> 1000sec
   if( foo > 100000 ) {
@@ -235,15 +147,156 @@ void loop() {
 
 }
 
+boolean getOpenWeatherMapData(void) {
+
+  uint16_t json_len, http_len;
+  WiFiClient client;
+
+#ifdef REALDATA
+  Serial.println("Fetching DATA");
+  if( client.connect( urlHost, 80 ) ) {
+    client.println( urlCall );
+  }
+#else
+// TODO - check for overflow
+  httpJson[] = "{\
+    \"coord\":{\"lon\":16.38,\"lat\":45.47},\
+    \"weather\":[{\"id\":800,\"main\":\"Clear\",\"description\":\"Sky is Clear\",\"icon\":\"01d\"}],\
+    \"base\":\"stations\",\
+    \"main\":{\"temp\":301.21,\"pressure\":1016,\"humidity\":38,\"temp_min\":297.15,\"temp_max\":306.15},\
+    \"id\":3190813,\"name\":\"Sisak\",\"cod\":200}";
+#endif
+#ifdef HTTPDEBUG
+  Serial.println(urlHost);
+  Serial.println(urlCall);
+#endif
+
+  String httpResponse;
+
+#ifdef REALDATA
+  while( client.available() ) {
+    String line;
+    line = client.readStringUntil('\r');
+    httpResponse += line;
+    if( line.charAt(1) == '{' ) {
+      unsigned int lnlen = line.length();
+      line.toCharArray( httpJson, lnlen );
+ #ifdef HTTPDEBUG
+      Serial.println(line);
+      Serial.print("JSON LEN : ");
+      Serial.println(lnlen);
+      Serial.println(httpJson);
+ #endif
+      json_len = lnlen;
+    }
+  }
+  http_len = httpResponse.length();
+ #ifdef HTTPDEBUG
+  Serial.println();
+  Serial.print(httpResponse);
+  Serial.print("HTTP LEN : ");
+  Serial.println(http_len);
+ #endif
+#endif
+
+  client.stop();
+  
+  if( http_len == 0 ) {
+    Serial.println("NO http data !");
+    return false;
+  }
+  if( json_len == 0 ) {
+    Serial.println("Something went wrong with Jason !");
+    return false;
+  }
+  return true;
+}
+
+boolean parseOpenWeatherMapJSON(void) {
+
+  double KelvinScale = -273.15;
+
+  StaticJsonBuffer<2047> jsonBuffer;
+  JsonObject &HttpData = jsonBuffer.parseObject( httpJson );
+
+  if ( !HttpData.success() ) {
+    Serial.println("parsing failed");
+    return false;
+  }
+
+  JsonObject &CoordData = HttpData["coord"];
+  JsonArray &WeatherData = HttpData["weather"];
+  JsonObject &MainData = HttpData["main"];
+  JsonObject &SysData = HttpData["sys"];
+
+  const char* CityBase = HttpData["base"];
+  const char* CityName = HttpData["name"];
+  unsigned long CityId = HttpData["id"];
+//  const char* CityWeather = WeatherData["description"][2];
+  double CityLon = CoordData["lon"];
+  double CityLat = CoordData["lat"];
+  unsigned long CitySunrise = SysData["sunrise"];
+  unsigned long CitySunset = SysData["sunset"];
+  double CityTemp = MainData["temp"];
+  CityTemp += KelvinScale;
+  unsigned int CityPressure = MainData["pressure"];
+  unsigned int CityHumidity = MainData["humidity"];
+  double CityTempMin = MainData["temp_min"];
+  CityTempMin += KelvinScale;
+  double CityTempMax = MainData["temp_max"];
+  CityTempMax += KelvinScale;
+
+  Serial.print("Buffer - ");
+  Serial.print(jsonBuffer.size());
+  Serial.print(" , JSON Length - ");
+  Serial.print(HttpData.measureLength());
+  Serial.print(" , JSON Size - ");
+  Serial.println(HttpData.size());    
+  Serial.print("- ");
+  Serial.println(CityBase);
+  Serial.print("- ");
+  Serial.print(CityName);
+  Serial.print(", ");
+  Serial.print(CityId);
+  Serial.print(" - [");
+  Serial.print(CityLon);
+  Serial.print(", ");
+  Serial.print(CityLat);
+  Serial.println("]");
+  Serial.print("- ");
+  Serial.print(CitySunrise);
+  Serial.print(" - ");
+  Serial.println(CitySunset);
+//  Serial.print("- ");
+//  Serial.println(WeatherData.prinTo());
+  Serial.print("- ");
+  Serial.print(CityTemp);
+  Serial.print("C [");
+  Serial.print(CityTempMin);
+  Serial.print("-");
+  Serial.print(CityTempMax);
+  Serial.println("]");
+  Serial.print("- ");
+  Serial.print(CityPressure);
+  Serial.println(" hPa");
+  Serial.print("- ");
+  Serial.print(CityHumidity);
+  Serial.println(" %");
+
+  return true;
+
+}
+
 void setupURL(void) {
 
 // api.openweathermap.org/data/2.5/forecast?id={city ID}
 
   urlCall = "GET ";
-  // urlCall += "/data/2.5/forecast";
+// urlCall += "/data/2.5/forecast";
   urlCall += "/data/2.5/weather";
   urlCall += "?id=3190813"; // Sisak,HR
-  urlCall += "&APPID=yy"; // Mozz's API key
+//  urlCall += "&units=metric"; // SI notation
+  urlCall += "&APPID=y"; // Mozz's API key
 
   urlCall += " HTTP/1.1\r\n";
   urlCall += "Host: ";
@@ -259,19 +312,27 @@ void setupURL(void) {
 
 void initWiFi(void) {
 
-  int WiFiCounter = 0;
+  uint8_t WiFiCounter = 0;
 
   Serial.print( "Connecting to " );
   Serial.println( ssid );
-  WiFi.mode( WIFI_STA );
+  // WiFi.mode( WIFI_STA );
   WiFi.begin( ssid, pass );
 
-  while ( WiFi.status() != WL_CONNECTED && WiFiCounter < 30 ) {
-    delay(1000);
+  while ( WiFiCounter < 30 ) { // 15 sec
+    if( WiFi.status() == WL_CONNECTED ) break;
+    if( WiFi.status() == WL_CONNECT_FAILED ) break;
+    delay(500);
     WiFiCounter++;
     Serial.print( "." );
   }
   Serial.println( "" );
+  if( WiFiCounter == 30 ) {
+    Serial.print("Could not connect to ");
+    Serial.println( ssid );
+    while(1) delay(1000); // fire up wdt reset;
+    // ESP.restart();
+  }
   
   Serial.println( "WiFi connected" );
   Serial.print( "IP address: " );
