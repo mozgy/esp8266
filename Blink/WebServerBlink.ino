@@ -130,6 +130,15 @@ void handleLEDOFF() {
   LED_OFF;
 }
 
+void handleFavIcon() {
+  Serial.println("favicon.ico");
+  ElapsedStr( tmpstr );
+  Serial.println( tmpstr );
+  WiFiClient client = server.client();
+  client.write( EspFavIcon, sizeof(EspFavIcon) );
+  server.send ( 200, "image/x-icon", "" );
+}
+
 void handleRoot() {
   server.send ( 200, "text/html", HTML_Root );
 }
@@ -138,12 +147,15 @@ void setupWebServer(void) {
 
   server.on ( "/", handleRoot );
 
+/*
   server.on ( "/favicon.ico", []() {
     Serial.println("favicon.ico");
     ElapsedStr( tmpstr );
     Serial.println( tmpstr );
     server.send ( 200, "text/html", "" ); // better than 404
   } );
+ */
+  server.on ( "/favicon.ico", handleFavIcon );
 
   server.on ( "/ledon", handleLEDON );
 
