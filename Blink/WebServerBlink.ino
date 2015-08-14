@@ -65,15 +65,15 @@ void setup() {
   Serial.print(F("Vcc: ")); Serial.println(readvdd33());
   Serial.println();
 
-  delay( 5000 );
+  delay( 3000 );
   pinMode( LED_PIN, OUTPUT );
 
   // let them know we're alive
   for ( i=0; i<10; i++ ) {
     LED_ON;
-    delay(40);
+    delay(30);
     LED_OFF;
-    delay(80);
+    delay(60);
   }
   LED_OFF;
 
@@ -99,10 +99,12 @@ void initWiFi(void) {
 
 }
 
-String HTML_Root = "<!doctype html> <html> <head> ESP8266 Web Server </head> <body>\
-  <button onclick=\"window.location.href='/ledon'\">LED ON</button>\
-  <button onclick=\"window.location.href='/ledoff'\">LED OFF</button>\
-</body> </html>";
+String HTML_Root = "<!doctype html> <html> <head> ESP8266 Web Server </head>\
+  <body> <div style=\"text-align:center;width:100%;\">\
+    <button onclick=\"window.location.href='/ledon'\"><h1>LED ON</button>\
+    <button onclick=\"window.location.href='/ledoff'\"><h1>LED OFF</button>\
+  </div> </body>\
+</html>";
 
 String HTML_LED_ON = "<!doctype html> <html> <head>\
 <script>window.onload = function() { setInterval(function() {window.location.replace('/');}, 1500); };</script>\
