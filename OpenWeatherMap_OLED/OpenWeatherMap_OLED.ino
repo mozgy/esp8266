@@ -28,6 +28,8 @@
 #define DEBUG true
 #define Serial if(DEBUG)Serial
 
+ADC_MODE(ADC_VCC);
+
 #include <Wire.h>
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
@@ -82,7 +84,6 @@ char tmpstr[20];
 
 extern "C" {
 #include "user_interface.h"
-uint32_t readvdd33(void);
 }
 
 void setup() {
@@ -97,6 +98,7 @@ void setup() {
   Serial.print("CPU: "); Serial.println(system_get_cpu_freq());
   Serial.print("ChipID: "); Serial.println(ESP.getChipId());
   Serial.print("SDK: "); Serial.println(system_get_sdk_version());
+  Serial.print("Vcc: "); Serial.println(ESP.getVcc());
   Serial.println();
 
   // Wire.begin( SDA_pin, SCL_pin );
@@ -387,7 +389,6 @@ void ElapsedStr( char *str ) {
   oled.SendStrXY( tmpstr, 3, 0 );
 //  sprintf( tmpstr, "Vcc %d", ESP.getVcc() );
 //  Vdd = (float)ESP.getVcc() / 1000.0;
-//  sprintf( tmpstr, "Vcc %12d", readvdd33() );
   Vdd = (float)readvdd33() / 1000.0;
   dtostrf( Vdd, 6, 3, tmpstr2 );
   sprintf( tmpstr, "Vcc %12s", tmpstr2 );
