@@ -26,6 +26,8 @@
 #define Serial if(DEBUG)Serial
 #define DEBUG_OUTPUT Serial
 
+ADC_MODE(ADC_VCC);
+
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
 #include <ESP8266WebServer.h>
@@ -45,7 +47,6 @@ char tmpstr[40];
 
 extern "C" {
 #include "user_interface.h"
-uint32_t readvdd33(void);
 }
 
 void setup() {
@@ -62,7 +63,7 @@ void setup() {
   Serial.print(F("SDK: ")); Serial.println(system_get_sdk_version());
   Serial.print(F("Chip ID: ")); Serial.println(system_get_chip_id());
   Serial.print(F("Flash ID: ")); Serial.println(spi_flash_get_id());
-  Serial.print(F("Vcc: ")); Serial.println(readvdd33());
+  Serial.print(F("Vcc: ")); Serial.println(ESP.getVcc());
   Serial.println();
 
   delay( 3000 );
