@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015. Mario Mikoèeviæ <mozgy>
+ * Copyright (c) 2015. Mario Mikočević <mozgy>
  *
  * MIT Licence
  *
@@ -20,12 +20,8 @@ ADC_MODE(ADC_VCC);
 
 char tmpstr[40];
 
-uint8_t net_count;
-uint8_t net_max;
-
 File fh_netdata;
 String line;
-String fuckingBufferStr = "";
 
 extern "C" {
 #include "user_interface.h"
@@ -38,19 +34,19 @@ void setup() {
   Serial.setDebugOutput(true);
 
   Serial.println();
-  Serial.print(F("Heap: ")); Serial.println(system_get_free_heap_size());
-  Serial.print(F("Boot Vers: ")); Serial.println(system_get_boot_version());
-  Serial.print(F("CPU: ")); Serial.println(system_get_cpu_freq());
-  Serial.print(F("SDK: ")); Serial.println(system_get_sdk_version());
-  Serial.print(F("Chip ID: ")); Serial.println(system_get_chip_id());
-  Serial.print(F("Flash ID: ")); Serial.println(spi_flash_get_id());
-  Serial.print(F("Flash Size: ")); Serial.println(ESP.getFlashChipRealSize());
-  Serial.print(F("Vcc: ")); Serial.println(ESP.getVcc());
+  Serial.print( F("Heap: ") ); Serial.println(system_get_free_heap_size());
+  Serial.print( F("Boot Vers: ") ); Serial.println(system_get_boot_version());
+  Serial.print( F("CPU: ") ); Serial.println(system_get_cpu_freq());
+  Serial.print( F("SDK: ") ); Serial.println(system_get_sdk_version());
+  Serial.print( F("Chip ID: ") ); Serial.println(system_get_chip_id());
+  Serial.print( F("Flash ID: ") ); Serial.println(spi_flash_get_id());
+  Serial.print( F("Flash Size: ") ); Serial.println(ESP.getFlashChipRealSize());
+  Serial.print( F("Vcc: ") ); Serial.println(ESP.getVcc());
   Serial.println();
 
   bool result = SPIFFS.begin();
   if( !result ) {
-    Serial.println(F("SPIFFS open failed!"));
+    Serial.println( F("SPIFFS open failed!") );
   }
 
 /*
@@ -60,56 +56,50 @@ void setup() {
     Serial.println("SPIFFS format failed!");
   }
  */
-//  SPIFFS.remove( "/netcnt.txt" );
-  SPIFFS.remove( "/netdata.txt" );
+//  SPIFFS.remove( "/netdata.txt" );
 
   // Set WiFi to station mode and disconnect from an AP if it was previously connected
   WiFi.mode(WIFI_STA);
   WiFi.disconnect();
   delay(100);
 
-  net_count = 0;
-  net_max = 0;
-
-  Serial.println(F("Setup done"));
+  Serial.println( F("Setup done") );
 }
 
 void loop() {
 
   do_wifiscan();
 
-  Serial.print(F("Heap: ")); Serial.println(system_get_free_heap_size());
+  Serial.print( F("Heap: ") ); Serial.println(system_get_free_heap_size());
 
   ElapsedStr( tmpstr );
   Serial.println( tmpstr );
 
-  // Wait a bit before scanning again
-  delay(3000000);
+  // Wait some time before scanning again
+  delay(900000);
 
 }
 
 void do_wifiscan( void ) {
+  int netCount;
 
-  Serial.println(F("scan start"));
+  Serial.println( F("scan start") );
 
   // WiFi.scanNetworks will return the number of networks found
-  net_count = WiFi.scanNetworks();
-  Serial.println("scan done");
-  if ( net_count == 0 ) {
-    Serial.println("no networks found");
+  netCount = WiFi.scanNetworks();
+//  Serial.println("scan done"); // no need if Serial.setDebugOutput(true)
+  if ( netCount == 0 ) {
+    Serial.println("no network found");
   } else {
-    Serial.print(net_count);
-    Serial.println(" networks found");
-    parse_networks( net_count );
-    if ( net_count > net_max ) {
-      net_max = net_count;
-    }
+    Serial.print(netCount);
+    Serial.println(" network(s) found");
+    parse_networks( netCount );
   }
   Serial.println("");
 
 }
 
-void parse_networks( int net_num ) {
+void parse_networks( int netNum ) {
 
 /*
   for (int i = 0; i < net_num; ++i)
@@ -126,22 +116,21 @@ void parse_networks( int net_num ) {
   }
  */
 
-  if ( !update_netdata( net_num ) ) {
-    Serial.println(F("Something went WRONG!"));
+  if ( !update_netdata( netNum ) ) {
+    Serial.println( F("Something went WRONG!") );
   }
-
-}
-
-bool find_ssid( String ssid ) {
 
 }
 
 bool update_netdata( int netNum ) {
 
-  uint8_t netId;
+  int netId;
   int netFound = 0;
 
   DynamicJsonBuffer jsonBuffer;
+
+//    fh_netdata.println( "{\"count\":0,\"max\":0}" );
+//    fh_netdata.println( "{\"count\":0,\"max\":0,\"networks\":[{\"ssid\":\"ssid\",\"bssid\":\"bssid\",\"rssi\":0,\"ch\":1,\"enc\":\"*\"}]}" );
 
 // create new data from network list
   JsonObject& WiFiData = jsonBuffer.createObject();
@@ -155,11 +144,11 @@ bool update_netdata( int netNum ) {
   if ( !fh_netdata ) {
 
 // no last data
-    Serial.println(F("Data file doesn't exist yet."));
+    Serial.println( F("Data file doesn't exist yet.") );
 
     fh_netdata = SPIFFS.open("/netdata.txt", "w");
     if ( !fh_netdata ) {
-      Serial.println(F("Data file creation failed"));
+      Serial.println( F("Data file creation failed") );
       return false;
     }
     for ( int i = 0; i < netNum; ++i ) {
@@ -173,47 +162,45 @@ bool update_netdata( int netNum ) {
       tmpObj["ch"] = WiFi.channel(i);
       tmpObj["enc"] = ((WiFi.encryptionType(i) == ENC_TYPE_NONE)?" ":"*");
 
+      Serial.print("Add - ");tmpObj.printTo( Serial );Serial.println();
       WiFiDataArray.add( tmpObj );
 
     }
 
+// WiFiData is wifi scan snapshot
+//    Serial.println("Scanned wifi data ->");
+//    WiFiData.printTo( Serial );
+//    WiFiData.prettyPrintTo( Serial );
+//    Serial.println("");
+
   } else {
 
 // read last WiFi data from file
-//    Serial.println(F("Reading saved wifi data .."));
-
+//    Serial.println( F("Reading saved wifi data ..") );
     line = fh_netdata.readStringUntil('\n');
-//    Serial.print(F("Line (read) "));Serial.println( line );
-    fh_netdata.close();
-    SPIFFS.remove( "/netdata.txt" );
-
-    fh_netdata = SPIFFS.open("/netdata.txt", "w");
-    if ( !fh_netdata ) {
-      Serial.println(F("Data file creation failed"));
-      return false;
-    }
+//    Serial.print( F("Line (read) ") );Serial.println( line );
 
     JsonObject& WiFiDataFile = jsonBuffer.parseObject( line );
     if ( !WiFiDataFile.success() ) {
-      Serial.println(F("parsing failed"));
-      // maybe to remove data file now?
+      Serial.println( F("parsing failed") );
+      // parsing failed, removing old data
       SPIFFS.remove( "/netdata.txt" );
       return false;
     }
 
     int netNumFile = WiFiDataFile["count"];
-    Serial.print(F("Last count read "));Serial.println( netNumFile );
     int netMaxFile = WiFiDataFile["max"];
-    Serial.print(F("Last max read "));Serial.println( netMaxFile );
+    netId = netMaxFile;
+
+//    WiFiDataFile.prettyPrintTo( Serial );
+//    Serial.println("");
 
     JsonArray& tmpArray = WiFiDataFile["networks"];
-    for ( int i = 0; i < netNumFile; i++ ) {
-      String strTmp;
-      tmpArray[i].printTo( strTmp );
-      JsonObject& tmpObj = jsonBuffer.parseObject( strTmp );
+    for ( JsonArray::iterator it = tmpArray.begin(); it != tmpArray.end(); ++it ) {
+      JsonObject& tmpObj = *it;
       WiFiDataArray.add( tmpObj );
+      Serial.print("Copy - ");tmpObj.printTo( Serial );Serial.println();
     }
-    netId = netMaxFile;
 
     for ( int i = 0; i < netNum; i++ ) {
       bool wifiNetFound = false;
@@ -221,7 +208,11 @@ bool update_netdata( int netNum ) {
         String ssid1 = WiFi.SSID(i);
         String ssid2 = WiFiDataArray[j]["ssid"];
         if ( ssid1 == ssid2 ) {
-          wifiNetFound = true;
+          String bssid1 = bssidToString( WiFi.BSSID(i) );
+          String bssid2 = WiFiDataArray[j]["bssid"];
+          if ( bssid1 == bssid2 ) {
+            wifiNetFound = true;
+          }
         }
       }
       if ( !wifiNetFound ) {
@@ -232,7 +223,7 @@ bool update_netdata( int netNum ) {
         tmpObj["ssid"] = WiFi.SSID(i);
         tmpObj["bssid"] = bssidToString( WiFi.BSSID(i) );
         tmpObj["rssi"] = WiFi.RSSI(i);
-        tmpObj["chan"] = WiFi.channel(i);
+        tmpObj["ch"] = WiFi.channel(i);
         tmpObj["enc"] = ((WiFi.encryptionType(i) == ENC_TYPE_NONE)?" ":"*");
 
         WiFiDataArray.add( tmpObj );
@@ -242,11 +233,21 @@ bool update_netdata( int netNum ) {
         netId++;
       }
     }
-    Serial.print("Found new - ");Serial.println( netFound );
+
     WiFiData["count"] = netNumFile + netFound;
     WiFiData["max"] = netId;
-    Serial.print(F("Combined count "));Serial.println( (int)WiFiData["count"] );
-    Serial.print(F("Combined max "));Serial.println( (int)WiFiData["max"] );
+
+//    Serial.println("Computed wifi data ->");
+//    WiFiData.prettyPrintTo( Serial );
+
+    fh_netdata.close();
+    SPIFFS.remove( "/netdata.txt" );
+
+    fh_netdata = SPIFFS.open("/netdata.txt", "w");
+    if ( !fh_netdata ) {
+      Serial.println( F("Data file creation failed") );
+      return false;
+    }
 
   }
   WiFiData.printTo( fh_netdata );
@@ -298,5 +299,3 @@ void ElapsedStr( char *str ) {
   } else {
     sprintf( str, "%s%2d", str, ( sec % 60 ) );
   }
-
-}
