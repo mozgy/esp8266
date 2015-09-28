@@ -299,3 +299,4 @@ void ElapsedStr( char *str ) {
   } else {
     sprintf( str, "%s%2d", str, ( sec % 60 ) );
   }
+}
