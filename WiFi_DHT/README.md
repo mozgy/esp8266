@@ -4,7 +4,7 @@ Fully functional OTA.
 
 Required -
 - Arduino IDE 1.6.7 with igrr's OTA patch
-- git copy of esp8266/Arduino
+- 2.0 esp8266/Arduino or later
 
 --
 mozz
