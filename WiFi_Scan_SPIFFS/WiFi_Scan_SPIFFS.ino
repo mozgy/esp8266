@@ -23,67 +23,10 @@ char tmpstr[40];
 File fh_netdata;
 String line;
 
-extern "C" {
-#include "user_interface.h"
-}
-
-void setup() {
-
-  Serial.begin(115200);
-  delay(10);
-  Serial.setDebugOutput(true);
-
-  Serial.println();
-  Serial.print( F("Heap: ") ); Serial.println(system_get_free_heap_size());
-  Serial.print( F("Boot Vers: ") ); Serial.println(system_get_boot_version());
-  Serial.print( F("CPU: ") ); Serial.println(system_get_cpu_freq());
-  Serial.print( F("SDK: ") ); Serial.println(system_get_sdk_version());
-  Serial.print( F("Chip ID: ") ); Serial.println(system_get_chip_id());
-  Serial.print( F("Flash ID: ") ); Serial.println(spi_flash_get_id());
-  Serial.print( F("Flash Size: ") ); Serial.println(ESP.getFlashChipRealSize());
-  Serial.print( F("Vcc: ") ); Serial.println(ESP.getVcc());
-  Serial.println();
-
-  bool result = SPIFFS.begin();
-  if( !result ) {
-    Serial.println( F("SPIFFS open failed!") );
-  }
-
-/*
-  // comment format section after DEBUGING done
-  result = SPIFFS.format();
-  if( !result ) {
-    Serial.println("SPIFFS format failed!");
-  }
- */
-//  SPIFFS.remove( "/netdata.txt" );
-
-  // Set WiFi to station mode and disconnect from an AP if it was previously connected
-  WiFi.mode(WIFI_STA);
-  WiFi.disconnect();
-  delay(100);
-
-  Serial.println( F("Setup done") );
-}
-
-void loop() {
-
-  do_wifiscan();
-
-  Serial.print( F("Heap: ") ); Serial.println(system_get_free_heap_size());
-
-  ElapsedStr( tmpstr );
-  Serial.println( tmpstr );
-
-  // Wait some time before scanning again
-  delay(900000);
-
-}
-
 void do_wifiscan( void ) {
   int netCount;
 
-  Serial.println( F("scan start") );
+  Serial.println( "scan start" );
 
   // WiFi.scanNetworks will return the number of networks found
   netCount = WiFi.scanNetworks();
@@ -117,7 +60,7 @@ void parse_networks( int netNum ) {
  */
 
   if ( !update_netdata( netNum ) ) {
-    Serial.println( F("Something went WRONG!") );
+    Serial.println( "Something went WRONG!" );
   }
 
 }
@@ -148,7 +91,7 @@ bool update_netdata( int netNum ) {
 
     fh_netdata = SPIFFS.open("/netdata.txt", "w");
     if ( !fh_netdata ) {
-      Serial.println( F("Data file creation failed") );
+      Serial.println( "Data file creation failed" );
       return false;
     }
     for ( int i = 0; i < netNum; ++i ) {
@@ -182,7 +125,7 @@ bool update_netdata( int netNum ) {
 
     JsonObject& WiFiDataFile = jsonBuffer.parseObject( line );
     if ( !WiFiDataFile.success() ) {
-      Serial.println( F("parsing failed") );
+      Serial.println( "parsing failed" );
       // parsing failed, removing old data
       SPIFFS.remove( "/netdata.txt" );
       return false;
@@ -227,7 +170,7 @@ bool update_netdata( int netNum ) {
         tmpObj["enc"] = ((WiFi.encryptionType(i) == ENC_TYPE_NONE)?" ":"*");
 
         WiFiDataArray.add( tmpObj );
-        Serial.print("Found new - ");tmpObj.printTo( Serial );Serial.println();
+        Serial.print( "Found new - " );tmpObj.printTo( Serial );Serial.println();
 
         netFound++;
         netId++;
@@ -245,7 +188,7 @@ bool update_netdata( int netNum ) {
 
     fh_netdata = SPIFFS.open("/netdata.txt", "w");
     if ( !fh_netdata ) {
-      Serial.println( F("Data file creation failed") );
+      Serial.println( "Data file creation failed" );
       return false;
     }
 
@@ -299,4 +242,59 @@ void ElapsedStr( char *str ) {
   } else {
     sprintf( str, "%s%2d", str, ( sec % 60 ) );
   }
+}
+
+void setup() {
+
+  Serial.begin(115200);
+  delay(10);
+  Serial.setDebugOutput(true);
+
+  Serial.println();
+  Serial.printf( "Sketch size: %u\n", ESP.getSketchSize() );
+  Serial.printf( "Free size: %u\n", ESP.getFreeSketchSpace() );
+  Serial.printf( "Heap: %u\n", ESP.getFreeHeap() );
+  Serial.printf( "Boot Vers: %u\n", ESP.getBootVersion() );
+  Serial.printf( "CPU: %uMHz\n", ESP.getCpuFreqMHz() );
+  Serial.printf( "SDK: %s\n", ESP.getSdkVersion() );
+  Serial.printf( "Chip ID: %u\n", ESP.getChipId() );
+  Serial.printf( "Flash ID: %u\n", ESP.getFlashChipId() );
+  Serial.printf( "Flash Size: %u\n", ESP.getFlashChipRealSize() );
+  Serial.printf( "Vcc: %u\n", ESP.getVcc() );
+  Serial.println();
+
+  bool result = SPIFFS.begin();
+  if( !result ) {
+    Serial.println( "SPIFFS open failed!" );
+  }
+
+/*
+  // comment format section after DEBUGING done
+  result = SPIFFS.format();
+  if( !result ) {
+    Serial.println("SPIFFS format failed!");
+  }
+ */
+//  SPIFFS.remove( "/netdata.txt" );
+
+  // Set WiFi to station mode and disconnect from an AP if it was previously connected
+  WiFi.mode(WIFI_STA);
+  WiFi.disconnect();
+  delay(100);
+
+  Serial.println( "Setup done" );
+}
+
+void loop() {
+
+  do_wifiscan();
+
+  Serial.printf( "Heap: %u\n", ESP.getFreeHeap() );
+
+  ElapsedStr( tmpstr );
+  Serial.println( tmpstr );
+
+  // Wait some time before scanning again
+  delay(900000);
+
 }
