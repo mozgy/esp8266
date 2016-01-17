@@ -58,16 +58,16 @@ bool update_netdata( int netNum ) {
 
   JsonArray& WiFiDataArray  = WiFiData.createNestedArray("networks");
 
-  fh_netdata = SPIFFS.open("/netdata.txt", "r");
+  fh_netdata = SPIFFS.open( "/netdata.txt", "r" );
 
   if ( !fh_netdata ) {
 
 // no last data
-    Serial.println( F("Data file doesn't exist yet.") );
+    Serial.println( "Data file doesn't exist yet." );
 
-    fh_netdata = SPIFFS.open("/netdata.txt", "w");
+    fh_netdata = SPIFFS.open( "/netdata.txt", "w" );
     if ( !fh_netdata ) {
-      Serial.println( F("Data file creation failed") );
+      Serial.println( "Data file creation failed" );
       return false;
     }
     for ( int i = 0; i < netNum; ++i ) {
@@ -95,13 +95,13 @@ bool update_netdata( int netNum ) {
   } else {
 
 // read last WiFi data from file
-//    Serial.println( F("Reading saved wifi data ..") );
+//    Serial.println( "Reading saved wifi data .." );
     line = fh_netdata.readStringUntil('\n');
-//    Serial.print( F("Line (read) ") );Serial.println( line );
+//    Serial.print( "Line (read) " );Serial.println( line );
 
     JsonObject& WiFiDataFile = jsonBuffer.parseObject( line );
     if ( !WiFiDataFile.success() ) {
-      Serial.println( F("parsing failed") );
+      Serial.println( "parsing failed" );
       // parsing failed, removing old data
       SPIFFS.remove( "/netdata.txt" );
       return false;
@@ -118,7 +118,7 @@ bool update_netdata( int netNum ) {
     for ( JsonArray::iterator it = tmpArray.begin(); it != tmpArray.end(); ++it ) {
       JsonObject& tmpObj = *it;
       WiFiDataArray.add( tmpObj );
-      Serial.print("Copy - ");tmpObj.printTo( Serial );Serial.println();
+      Serial.print( "Copy - " );tmpObj.printTo( Serial );Serial.println();
     }
 
     for ( int i = 0; i < netNum; i++ ) {
@@ -131,9 +131,9 @@ bool update_netdata( int netNum ) {
           String bssid2 = WiFiDataArray[j]["bssid"];
           if ( bssid1 == bssid2 ) {
             wifiNetFound = true;
-            Serial.print("Station - ");Serial.print(ssid1);
-            Serial.print(", scanned RSSI - ");Serial.print(WiFi.RSSI(i));
-            Serial.print(", saved RSSI - ");
+            Serial.print( "Station - " );Serial.print(ssid1);
+            Serial.print( ", scanned RSSI - " );Serial.print(WiFi.RSSI(i));
+            Serial.print( ", saved RSSI - " );
             String rssi2 = WiFiDataArray[j]["rssi"];
             Serial.println(rssi2);
           }
@@ -151,7 +151,7 @@ bool update_netdata( int netNum ) {
         tmpObj["enc"] = ((WiFi.encryptionType(i) == ENC_TYPE_NONE)?" ":"*");
 
         WiFiDataArray.add( tmpObj );
-        Serial.print("Found new - ");tmpObj.printTo( Serial );Serial.println();
+        Serial.print( "Found new - " );tmpObj.printTo( Serial );Serial.println();
 
         netFound++;
         netId++;
@@ -167,9 +167,9 @@ bool update_netdata( int netNum ) {
     fh_netdata.close();
     // SPIFFS.remove( "/netdata.txt" );
 
-    fh_netdata = SPIFFS.open("/netdata.txt", "w");
+    fh_netdata = SPIFFS.open( "/netdata.txt", "w" );
     if ( !fh_netdata ) {
-      Serial.println( F("Data file creation failed") );
+      Serial.println( "Data file creation failed" );
       return false;
     }
 
@@ -211,7 +211,7 @@ void do_wifiscan( void ) {
 
   // WiFi.scanNetworks will return the number of networks found
   netCount = WiFi.scanNetworks();
-//  Serial.println("scan done"); // no need if Serial.setDebugOutput(true)
+//  Serial.println( "scan done" ); // no need if Serial.setDebugOutput(true)
   if ( netCount == 0 ) {
     Serial.println( "no network found" );
   } else {
