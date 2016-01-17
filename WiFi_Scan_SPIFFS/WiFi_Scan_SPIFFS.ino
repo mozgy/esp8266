@@ -11,57 +11,33 @@
 // #define Serial if(DEBUG)Serial
 // #define DEBUG_OUTPUT Serial
 
-ADC_MODE(ADC_VCC);
-
 #include "ESP8266WiFi.h"
 #include "FS.h"
 
-#include <ArduinoJson.h>
+ADC_MODE(ADC_VCC);
+
+#include <ArduinoJson.h> // https://github.com/bblanchon/ArduinoJson
+
+#include <Ticker.h>
+Ticker tickerWiFiScan;
+#define WAITTIME 600
+boolean tickerFired;
 
 char tmpstr[40];
 
 File fh_netdata;
 String line;
 
-void do_wifiscan( void ) {
-  int netCount;
-
-  Serial.println( "scan start" );
-
-  // WiFi.scanNetworks will return the number of networks found
-  netCount = WiFi.scanNetworks();
-//  Serial.println("scan done"); // no need if Serial.setDebugOutput(true)
-  if ( netCount == 0 ) {
-    Serial.println("no network found");
-  } else {
-    Serial.print(netCount);
-    Serial.println(" network(s) found");
-    parse_networks( netCount );
-  }
-  Serial.println("");
-
+void flagWiFiScan( void ) {
+  tickerFired = true;
 }
 
-void parse_networks( int netNum ) {
+String bssidToString( uint8_t *bssid ) {
 
-/*
-  for (int i = 0; i < net_num; ++i)
-  {
-    // Print SSID and RSSI for each network found
-    Serial.print(i + 1);
-    Serial.print(": ");
-    Serial.print(WiFi.SSID(i));
-    Serial.print(" (");
-    Serial.print(WiFi.RSSI(i));
-    Serial.print(")");
-    Serial.println((WiFi.encryptionType(i) == ENC_TYPE_NONE)?" ":"*");
-    delay(10);
-  }
- */
+  char mac[18] = {0};
 
-  if ( !update_netdata( netNum ) ) {
-    Serial.println( "Something went WRONG!" );
-  }
+  sprintf( mac,"%02X:%02X:%02X:%02X:%02X:%02X", bssid[0],  bssid[1],  bssid[2], bssid[3], bssid[4], bssid[5] );
+  return String( mac );
 
 }
 
@@ -91,7 +67,7 @@ bool update_netdata( int netNum ) {
 
     fh_netdata = SPIFFS.open("/netdata.txt", "w");
     if ( !fh_netdata ) {
-      Serial.println( "Data file creation failed" );
+      Serial.println( F("Data file creation failed") );
       return false;
     }
     for ( int i = 0; i < netNum; ++i ) {
@@ -125,7 +101,7 @@ bool update_netdata( int netNum ) {
 
     JsonObject& WiFiDataFile = jsonBuffer.parseObject( line );
     if ( !WiFiDataFile.success() ) {
-      Serial.println( "parsing failed" );
+      Serial.println( F("parsing failed") );
       // parsing failed, removing old data
       SPIFFS.remove( "/netdata.txt" );
       return false;
@@ -155,6 +131,11 @@ bool update_netdata( int netNum ) {
           String bssid2 = WiFiDataArray[j]["bssid"];
           if ( bssid1 == bssid2 ) {
             wifiNetFound = true;
+            Serial.print("Station - ");Serial.print(ssid1);
+            Serial.print(", scanned RSSI - ");Serial.print(WiFi.RSSI(i));
+            Serial.print(", saved RSSI - ");
+            String rssi2 = WiFiDataArray[j]["rssi"];
+            Serial.println(rssi2);
           }
         }
       }
@@ -170,7 +151,7 @@ bool update_netdata( int netNum ) {
         tmpObj["enc"] = ((WiFi.encryptionType(i) == ENC_TYPE_NONE)?" ":"*");
 
         WiFiDataArray.add( tmpObj );
-        Serial.print( "Found new - " );tmpObj.printTo( Serial );Serial.println();
+        Serial.print("Found new - ");tmpObj.printTo( Serial );Serial.println();
 
         netFound++;
         netId++;
@@ -184,11 +165,11 @@ bool update_netdata( int netNum ) {
 //    WiFiData.prettyPrintTo( Serial );
 
     fh_netdata.close();
-    SPIFFS.remove( "/netdata.txt" );
+    // SPIFFS.remove( "/netdata.txt" );
 
     fh_netdata = SPIFFS.open("/netdata.txt", "w");
     if ( !fh_netdata ) {
-      Serial.println( "Data file creation failed" );
+      Serial.println( F("Data file creation failed") );
       return false;
     }
 
@@ -198,15 +179,47 @@ bool update_netdata( int netNum ) {
   fh_netdata.close();
 
   return true;
+}
+
+void parse_networks( int netNum ) {
+
+/*
+  for (int i = 0; i < net_num; ++i)
+  {
+    // Print SSID and RSSI for each network found
+    Serial.print(i + 1);
+    Serial.print(": ");
+    Serial.print(WiFi.SSID(i));
+    Serial.print(" (");
+    Serial.print(WiFi.RSSI(i));
+    Serial.print(")");
+    Serial.println((WiFi.encryptionType(i) == ENC_TYPE_NONE)?" ":"*");
+    delay(10);
+  }
+ */
+
+  if ( !update_netdata( netNum ) ) {
+    Serial.println( "Something went WRONG!" );
+  }
 
 }
 
-String bssidToString( uint8_t *bssid ) {
+void do_wifiscan( void ) {
+  int netCount;
 
-  char mac[18] = {0};
+  Serial.println( "scan start" );
 
-  sprintf( mac,"%02X:%02X:%02X:%02X:%02X:%02X", bssid[0],  bssid[1],  bssid[2], bssid[3], bssid[4], bssid[5] );
-  return String( mac );
+  // WiFi.scanNetworks will return the number of networks found
+  netCount = WiFi.scanNetworks();
+//  Serial.println("scan done"); // no need if Serial.setDebugOutput(true)
+  if ( netCount == 0 ) {
+    Serial.println( "no network found" );
+  } else {
+    Serial.print(netCount);
+    Serial.println( " network(s) found" );
+    parse_networks( netCount );
+  }
+  Serial.println();
 
 }
 
@@ -242,6 +255,7 @@ void ElapsedStr( char *str ) {
   } else {
     sprintf( str, "%s%2d", str, ( sec % 60 ) );
   }
+
 }
 
 void setup() {
@@ -282,19 +296,20 @@ void setup() {
   WiFi.disconnect();
   delay(100);
 
+  tickerWiFiScan.attach( WAITTIME, flagWiFiScan );
+  tickerFired = true;
+
   Serial.println( "Setup done" );
 }
 
 void loop() {
 
-  do_wifiscan();
-
-  Serial.printf( "Heap: %u\n", ESP.getFreeHeap() );
-
-  ElapsedStr( tmpstr );
-  Serial.println( tmpstr );
-
-  // Wait some time before scanning again
-  delay(900000);
+  if( tickerFired ) {
+    tickerFired = false;
+    do_wifiscan();
+    ElapsedStr( tmpstr );
+    Serial.println( tmpstr );
+    Serial.print( "Heap: " ); Serial.println( ESP.getFreeHeap() );
+  }
 
 }
