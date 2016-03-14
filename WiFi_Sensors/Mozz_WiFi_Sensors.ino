@@ -93,18 +93,30 @@ void flagSensorScan( void ) {
   tickerFired = true;
 }
 
-void initWiFi(void) {
+void initWiFi( void ) {
+
+  uint8_t connAttempts = 0;
+  uint8_t connAttemptsMAX = 25;
 
   Serial.print( "Connecting to " );
   Serial.println( ssid );
   WiFi.mode( WIFI_STA );
   WiFi.begin( );
   while ( WiFi.waitForConnectResult() != WL_CONNECTED ){
-     WiFi.begin( ssid, pass );
-     Serial.println( "Retrying connection..." );
-//    Serial.println("Connection Failed! Rebooting...");
-//    delay(5000);
-//    ESP.restart();
+    WiFi.begin( ssid, pass );
+    delay(500);
+    connAttempts++;
+//    Serial.println( "Retrying connection..." ); // if connAttempts > 1
+    if ( connAttempts > connAttemptsMAX ) {
+#ifdef DEEPSLEEP
+      Serial.println( "Connection Failed! Gonna ..zzZZ" );
+      ESP.deepSleep( sleepTimeSec * 1000000, RF_NO_CAL );
+#endif
+      // if deepsleep is not defined we just reboot
+      // TODO - after MAX attempts create AP for ESP Setup over OTA
+      delay(5000);
+      ESP.restart();
+    }
   }
   Serial.println( "WiFi connected" );
   Serial.print( "IP address: " );
@@ -147,7 +159,7 @@ void ElapsedStr( char *str ) {
 
 }
 
-void sendSensorData( const char *id, float hum, float temp ) {
+bool sendSensorData( const char *id, float hum, float temp ) {
 
   WiFiClient client;
   int mV = ESP.getVcc();
@@ -159,6 +171,9 @@ void sendSensorData( const char *id, float hum, float temp ) {
   while( !client.connect( urlHost, 80 ) && i++ < 50 ) {
     Serial.println( "Cannot connect!" );
     delay(500);
+  }
+  if( i >= 50 ) {
+    return false;
   }
 
   String WiFiString = "GET /sensors/insertdata.php?hash=test&s=";
@@ -187,10 +202,11 @@ void sendSensorData( const char *id, float hum, float temp ) {
 
   client.stop();
 
+  return true;
 }
 
 #ifdef SENSOR_DHT
-boolean doSomethingWithSensor( void ) {
+bool doSomethingWithSensor( void ) {
 
   float h = dht.readHumidity();
   float t = dht.readTemperature();
@@ -209,14 +225,12 @@ boolean doSomethingWithSensor( void ) {
   Serial.print(" *C ");
   Serial.println();
 
-  sendSensorData( sensorLocation, h, t );
-
-  return true;
+  return sendSensorData( sensorLocation, h, t );
 }
 #endif
 
 #ifdef SENSOR_DS18B20
-boolean doSomethingWithSensor( void ) {
+bool doSomethingWithSensor( void ) {
 
   // we are reusing same php on receiving side, hence humidity -1% here ;)
   float hum = -1;
@@ -237,9 +251,7 @@ boolean doSomethingWithSensor( void ) {
   // 0 refers to the first IC on the wire
   Serial.println();
 
-  sendSensorData( sensorLocation, hum, temp );
-
-  return true;
+  return sendSensorData( sensorLocation, hum, temp );
 }
 #endif
 
@@ -261,15 +273,37 @@ void SetupArduinoOTA( void ) {
     Serial.println("End");
   });
   ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-    Serial.printf("Progress: %u%%\n", (progress / (total / 100)));
+    static uint8_t done = 0;
+    uint8_t percent = (progress / (total / 100) );
+    if ( percent % 2 == 0  && percent != done ) {
+      Serial.print("#");
+      done = percent;
+    }
+  if ( percent == 100 ) {
+      Serial.println();
+    }
   });
   ArduinoOTA.onError([](ota_error_t error) {
-    Serial.printf("Error[%u]: ", error);
-    if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
-    else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
-    else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
-    else if (error == OTA_RECIEVE_ERROR) Serial.println("Receive Failed");
-    else if (error == OTA_END_ERROR) Serial.println("End Failed");
+    Serial.printf( "Error[%u]: ", error );
+    switch ( error ) {
+      case OTA_AUTH_ERROR:
+        Serial.println("Auth Failed");
+        break;
+      case OTA_BEGIN_ERROR:
+        Serial.println("Begin Failed");
+        break;
+      case OTA_CONNECT_ERROR:
+        Serial.println("Connect Failed");
+        break;
+      case OTA_RECEIVE_ERROR:
+        Serial.println("Receive Failed");
+        break;
+      case OTA_END_ERROR:
+        Serial.println("End Failed");
+        break;
+      default:
+        Serial.println("OTA Error");
+    }
   });
   ArduinoOTA.begin();
 
@@ -281,12 +315,15 @@ void setup() {
   Serial.begin(115200);
   Serial.println( "Booting" );
   Serial.println();
+  Serial.print( "Last Reset Reason: " );
+  Serial.println( ESP.getResetReason() );
   Serial.printf( "Sketch size: %u\n", ESP.getSketchSize() );
   Serial.printf( "Free size: %u\n", ESP.getFreeSketchSpace() );
   Serial.printf( "Heap: %u\n", ESP.getFreeHeap() );
-  Serial.printf( "Boot Vers: %u\n", ESP.getBootVersion() );
-  Serial.printf( "CPU: %uMHz\n", ESP.getCpuFreqMHz() );
+  Serial.printf( "Boot Mode / Vers: %u / %u\n", ESP.getBootMode(), ESP.getBootVersion() );
   Serial.printf( "SDK: %s\n", ESP.getSdkVersion() );
+  Serial.printf( "Arduino: %d\n", ARDUINO );
+  Serial.printf( "CPU: %uMHz\n", ESP.getCpuFreqMHz() );
   Serial.printf( "Chip ID: %u\n", ESP.getChipId() );
   Serial.printf( "Flash ID: %u\n", ESP.getFlashChipId() );
   Serial.printf( "Flash Size: %u\n", ESP.getFlashChipRealSize() );
@@ -311,7 +348,7 @@ void setup() {
   while( ! doSomethingWithSensor() );
 
   Serial.printf( "Gonna ZZzz..\n" );
-  ESP.deepSleep( sleepTimeSec * 1000000 );
+  ESP.deepSleep( sleepTimeSec * 1000000, RF_NO_CAL );
 #endif
 
   tickerSensorScan.attach( WAITTIME, flagSensorScan );
@@ -323,6 +360,7 @@ void loop() {
 
 #ifdef OTA
   ArduinoOTA.handle();
+#endif
 
   if( tickerFired ) {
     tickerFired = false;
@@ -332,6 +370,5 @@ void loop() {
     Serial.println( tmpstr );
     Serial.printf( "Heap: %u\n", ESP.getFreeHeap() );
   }
-#endif
 
 }
